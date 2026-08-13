@@ -71,12 +71,6 @@ Autres règles :
 - Les observations peuvent inclure des traitements et vaccinations mentionnés sur la fiche`;
 
 router.post("/", upload.single("photo"), async (req, res) => {
-  const userId = (req.session as any)?.userId;
-  if (!userId) {
-    res.status(401).json({ error: "Non authentifié" });
-    return;
-  }
-
   try {
     if (!req.file) {
       res.status(400).json({ error: "Aucune image fournie" });
