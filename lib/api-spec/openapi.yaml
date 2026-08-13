@@ -1,0 +1,2286 @@
+openapi: 3.1.0
+info:
+  title: Farm Manager API
+  version: 0.1.0
+  description: API de gestion d'exploitation avicole (poulets de chair)
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: financement
+    description: Gestion du financement
+  - name: devis
+    description: Devis de construction
+  - name: depenses
+    description: Suivi des dépenses de construction
+  - name: bandes
+    description: Gestion des bandes de poulets
+  - name: dashboard
+    description: Tableau de bord
+  - name: activity-log
+    description: Journal d'activité
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Connexion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Identifiants incorrects
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Déconnexion
+      responses:
+        "200":
+          description: Déconnexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Utilisateur courant
+      responses:
+        "200":
+          description: Utilisateur courant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /financement:
+    get:
+      operationId: listFinancements
+      tags: [financement]
+      summary: Liste des financements
+      responses:
+        "200":
+          description: Liste des financements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Financement"
+    post:
+      operationId: createFinancement
+      tags: [financement]
+      summary: Créer un financement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFinancementBody"
+      responses:
+        "201":
+          description: Financement créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Financement"
+
+  /financement/{id}:
+    put:
+      operationId: updateFinancement
+      tags: [financement]
+      summary: Mettre à jour un financement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFinancementBody"
+      responses:
+        "200":
+          description: Financement mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Financement"
+    delete:
+      operationId: deleteFinancement
+      tags: [financement]
+      summary: Supprimer un financement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Financement supprimé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /devis:
+    get:
+      operationId: listDevis
+      tags: [devis]
+      summary: Liste des devis de construction
+      responses:
+        "200":
+          description: Devis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DevisConstruction"
+    put:
+      operationId: updateDevis
+      tags: [devis]
+      summary: Mettre à jour les devis de construction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDevisBody"
+      responses:
+        "200":
+          description: Devis mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DevisConstruction"
+
+  /devis/puits-items:
+    get:
+      operationId: listPuitsItems
+      tags: [devis]
+      summary: Liste des items du puits
+      responses:
+        "200":
+          description: Items du puits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PuitsItem"
+    post:
+      operationId: createPuitsItem
+      tags: [devis]
+      summary: Créer un item du puits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePuitsItemBody"
+      responses:
+        "201":
+          description: Item créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PuitsItem"
+
+  /devis/puits-items/{id}:
+    put:
+      operationId: updatePuitsItem
+      tags: [devis]
+      summary: Mettre à jour un item du puits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePuitsItemBody"
+      responses:
+        "200":
+          description: Item mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PuitsItem"
+    delete:
+      operationId: deletePuitsItem
+      tags: [devis]
+      summary: Supprimer un item du puits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Item supprimé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /depenses/sorties:
+    get:
+      operationId: listSorties
+      tags: [depenses]
+      summary: Liste des sorties d'argent
+      responses:
+        "200":
+          description: Sorties d'argent
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SortieArgent"
+    post:
+      operationId: createSortie
+      tags: [depenses]
+      summary: Créer une sortie d'argent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSortieBody"
+      responses:
+        "201":
+          description: Sortie créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SortieArgent"
+
+  /depenses/sorties/{id}:
+    put:
+      operationId: updateSortie
+      tags: [depenses]
+      summary: Mettre à jour une sortie
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSortieBody"
+      responses:
+        "200":
+          description: Sortie mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SortieArgent"
+    delete:
+      operationId: deleteSortie
+      tags: [depenses]
+      summary: Supprimer une sortie
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sortie supprimée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /depenses/carburant:
+    get:
+      operationId: listSortiesCarburant
+      tags: [depenses]
+      summary: Liste des sorties carburant
+      responses:
+        "200":
+          description: Sorties carburant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SortieCarburant"
+    post:
+      operationId: createSortieCarburant
+      tags: [depenses]
+      summary: Créer une sortie carburant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSortieCarburantBody"
+      responses:
+        "201":
+          description: Sortie carburant créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SortieCarburant"
+
+  /depenses/carburant/{id}:
+    put:
+      operationId: updateSortieCarburant
+      tags: [depenses]
+      summary: Mettre à jour une sortie carburant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSortieCarburantBody"
+      responses:
+        "200":
+          description: Mise à jour réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SortieCarburant"
+    delete:
+      operationId: deleteSortieCarburant
+      tags: [depenses]
+      summary: Supprimer une sortie carburant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Suppression réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /depenses/batiment-items:
+    get:
+      operationId: listBatimentItems
+      tags: [depenses]
+      summary: Liste des dépenses détaillées bâtiment
+      responses:
+        "200":
+          description: Dépenses bâtiment
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DepenseDetaillee"
+    post:
+      operationId: createBatimentItem
+      tags: [depenses]
+      summary: Créer une dépense bâtiment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepenseDetaillee"
+      responses:
+        "201":
+          description: Dépense créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepenseDetaillee"
+
+  /depenses/batiment-items/{id}:
+    put:
+      operationId: updateBatimentItem
+      tags: [depenses]
+      summary: Mettre à jour une dépense bâtiment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepenseDetaillee"
+      responses:
+        "200":
+          description: Mise à jour réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepenseDetaillee"
+    delete:
+      operationId: deleteBatimentItem
+      tags: [depenses]
+      summary: Supprimer une dépense bâtiment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Suppression réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /depenses/puits-items:
+    get:
+      operationId: listDepensesPuitsItems
+      tags: [depenses]
+      summary: Liste des dépenses détaillées puits
+      responses:
+        "200":
+          description: Dépenses puits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DepenseDetaillee"
+    post:
+      operationId: createDepensesPuitsItem
+      tags: [depenses]
+      summary: Créer une dépense puits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepenseDetaillee"
+      responses:
+        "201":
+          description: Dépense créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepenseDetaillee"
+
+  /depenses/puits-items/{id}:
+    put:
+      operationId: updateDepensesPuitsItem
+      tags: [depenses]
+      summary: Mettre à jour une dépense puits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepenseDetaillee"
+      responses:
+        "200":
+          description: Mise à jour réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepenseDetaillee"
+    delete:
+      operationId: deleteDepensesPuitsItem
+      tags: [depenses]
+      summary: Supprimer une dépense puits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Suppression réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /bandes:
+    get:
+      operationId: listBandes
+      tags: [bandes]
+      summary: Liste des bandes de poulets
+      responses:
+        "200":
+          description: Bandes de poulets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bande"
+    post:
+      operationId: createBande
+      tags: [bandes]
+      summary: Créer une bande
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBandeBody"
+      responses:
+        "201":
+          description: Bande créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bande"
+
+  /bandes/{id}:
+    get:
+      operationId: getBande
+      tags: [bandes]
+      summary: Détails d'une bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Détails de la bande
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BandeDetail"
+    put:
+      operationId: updateBande
+      tags: [bandes]
+      summary: Mettre à jour une bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBandeBody"
+      responses:
+        "200":
+          description: Bande mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bande"
+    delete:
+      operationId: deleteBande
+      tags: [bandes]
+      summary: Supprimer une bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bande supprimée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /bandes/{id}/depenses:
+    get:
+      operationId: listBandeDepenses
+      tags: [bandes]
+      summary: Liste des dépenses d'une bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dépenses de la bande
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BandeDepense"
+    post:
+      operationId: createBandeDepense
+      tags: [bandes]
+      summary: Créer une dépense de bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBandeDepenseBody"
+      responses:
+        "201":
+          description: Dépense créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BandeDepense"
+
+  /bandes/{id}/depenses/{depenseId}:
+    put:
+      operationId: updateBandeDepense
+      tags: [bandes]
+      summary: Mettre à jour une dépense de bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: depenseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBandeDepenseBody"
+      responses:
+        "200":
+          description: Dépense mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BandeDepense"
+    delete:
+      operationId: deleteBandeDepense
+      tags: [bandes]
+      summary: Supprimer une dépense de bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: depenseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dépense supprimée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /bandes/{id}/ventes:
+    get:
+      operationId: listBandeVentes
+      tags: [bandes]
+      summary: Liste des ventes d'une bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ventes de la bande
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BandeVente"
+    post:
+      operationId: createBandeVente
+      tags: [bandes]
+      summary: Créer une vente de bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBandeVenteBody"
+      responses:
+        "201":
+          description: Vente créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BandeVente"
+
+  /bandes/{id}/ventes/{venteId}:
+    put:
+      operationId: updateBandeVente
+      tags: [bandes]
+      summary: Mettre à jour une vente de bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: venteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBandeVenteBody"
+      responses:
+        "200":
+          description: Vente mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BandeVente"
+    delete:
+      operationId: deleteBandeVente
+      tags: [bandes]
+      summary: Supprimer une vente de bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: venteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vente supprimée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /bandes/{id}/charges-fixes:
+    get:
+      operationId: getBandeChargesFixe
+      tags: [bandes]
+      summary: Charges fixes d'une bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Charges fixes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargesFixe"
+    put:
+      operationId: updateBandeChargesFixe
+      tags: [bandes]
+      summary: Mettre à jour les charges fixes d'une bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateChargesFixeBody"
+      responses:
+        "200":
+          description: Charges fixes mises à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargesFixe"
+
+  /bandes/{id}/depenses-vente:
+    get:
+      operationId: listBandeDepensesVente
+      tags: [bandes]
+      summary: Dépenses liées à la vente d'une bande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dépenses de vente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DepenseVente"
+    post:
+      operationId: createBandeDepenseVente
+      tags: [bandes]
+      summary: Créer une dépense de vente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepenseVenteBody"
+      responses:
+        "201":
+          description: Dépense de vente créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepenseVente"
+
+  /bandes/{id}/depenses-vente/{depenseId}:
+    put:
+      operationId: updateBandeDepenseVente
+      tags: [bandes]
+      summary: Mettre à jour une dépense de vente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: depenseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepenseVenteBody"
+      responses:
+        "200":
+          description: Dépense de vente mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepenseVente"
+    delete:
+      operationId: deleteBandeDepenseVente
+      tags: [bandes]
+      summary: Supprimer une dépense de vente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: depenseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Suppression réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Résumé du tableau de bord
+      responses:
+        "200":
+          description: Résumé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/comparaison-bandes:
+    get:
+      operationId: getComparaisonBandes
+      tags: [dashboard]
+      summary: Comparaison entre bandes
+      responses:
+        "200":
+          description: Comparaison
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ComparaisonBande"
+
+  /dashboard/historique-caisse:
+    get:
+      operationId: getHistoriqueCaisse
+      tags: [dashboard]
+      summary: Historique de caisse
+      responses:
+        "200":
+          description: Historique
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoriqueCaisseResponse"
+
+  /financement/remboursements:
+    get:
+      operationId: getRemboursements
+      tags: [financement]
+      summary: Liste des remboursements
+      responses:
+        "200":
+          description: Remboursements et soldes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemboursementsResponse"
+    post:
+      operationId: createRemboursement
+      tags: [financement]
+      summary: Enregistrer un remboursement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRemboursementBody"
+      responses:
+        "201":
+          description: Remboursement créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Remboursement"
+
+  /financement/remboursements/{id}:
+    delete:
+      operationId: deleteRemboursement
+      tags: [financement]
+      summary: Supprimer un remboursement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Supprimé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /bandes/{id}/mortalite:
+    get:
+      operationId: getBandeMortalite
+      tags: [bandes]
+      summary: Suivi mortalité journalière
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Données de mortalité
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MortaliteEntry"
+    post:
+      operationId: createBandeMortalite
+      tags: [bandes]
+      summary: Ajouter une entrée de mortalité
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMortaliteBody"
+      responses:
+        "201":
+          description: Entrée créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MortaliteEntry"
+
+  /bandes/{id}/mortalite/{mortaliteId}:
+    delete:
+      operationId: deleteBandeMortalite
+      tags: [bandes]
+      summary: Supprimer une entrée de mortalité
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: mortaliteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Supprimé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /bandes/{id}/pesees:
+    get:
+      operationId: getBandePesees
+      tags: [bandes]
+      summary: Suivi des pesées
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Données de pesée
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PeseeEntry"
+    post:
+      operationId: createBandePesee
+      tags: [bandes]
+      summary: Ajouter une pesée
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePeseeBody"
+      responses:
+        "201":
+          description: Pesée créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PeseeEntry"
+
+  /bandes/{id}/pesees/{peseeId}:
+    delete:
+      operationId: deleteBandePesee
+      tags: [bandes]
+      summary: Supprimer une pesée
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: peseeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Supprimé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /bandes/{id}/consommation:
+    get:
+      operationId: getBandeConsommation
+      tags: [bandes]
+      summary: Consommation aliment et IC
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Données de consommation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsommationResponse"
+    post:
+      operationId: createBandeConsommation
+      tags: [bandes]
+      summary: Ajouter consommation aliment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConsommationBody"
+      responses:
+        "201":
+          description: Consommation ajoutée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsommationEntry"
+
+  /bandes/{id}/consommation/{consId}:
+    delete:
+      operationId: deleteBandeConsommation
+      tags: [bandes]
+      summary: Supprimer une consommation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: consId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Supprimé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /bandes/{id}/vaccinations:
+    get:
+      operationId: getBandeVaccinations
+      tags: [bandes]
+      summary: Calendrier vaccinations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vaccinations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VaccinationEntry"
+    post:
+      operationId: createBandeVaccination
+      tags: [bandes]
+      summary: Ajouter un vaccin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVaccinationBody"
+      responses:
+        "201":
+          description: Vaccin ajouté
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaccinationEntry"
+
+  /bandes/{id}/vaccinations/{vaccId}:
+    put:
+      operationId: updateBandeVaccination
+      tags: [bandes]
+      summary: Mettre à jour vaccination
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: vaccId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVaccinationBody"
+      responses:
+        "200":
+          description: Vaccination mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaccinationEntry"
+
+  /activity-log:
+    get:
+      operationId: getActivityLog
+      tags: [activity-log]
+      summary: Journal d'activité
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Entrées du journal
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityLogEntry"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    LoginBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - user
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        role:
+          type: string
+          enum: [admin, investisseur, gestionnaire, lecteur]
+        nom:
+          type: string
+      required:
+        - id
+        - username
+        - role
+        - nom
+
+    Financement:
+      type: object
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        montant:
+          type: number
+        date:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - nom
+        - montant
+        - date
+        - createdAt
+
+    CreateFinancementBody:
+      type: object
+      properties:
+        nom:
+          type: string
+        montant:
+          type: number
+        date:
+          type: string
+          format: date
+      required:
+        - nom
+        - montant
+        - date
+
+    DevisConstruction:
+      type: object
+      properties:
+        id:
+          type: integer
+        batimentEstime:
+          type: number
+        batimentNotes:
+          type: string
+        carburantEstime:
+          type: number
+        puitsItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PuitsItem"
+        totalPuits:
+          type: number
+        totalGeneral:
+          type: number
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - batimentEstime
+        - carburantEstime
+        - puitsItems
+        - totalPuits
+        - totalGeneral
+        - updatedAt
+
+    UpdateDevisBody:
+      type: object
+      properties:
+        batimentEstime:
+          type: number
+        batimentNotes:
+          type: string
+        carburantEstime:
+          type: number
+
+    PuitsItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        designation:
+          type: string
+        quantite:
+          type: number
+        prixUnitaire:
+          type: number
+        prixTotal:
+          type: number
+      required:
+        - id
+        - designation
+        - quantite
+        - prixUnitaire
+        - prixTotal
+
+    CreatePuitsItemBody:
+      type: object
+      properties:
+        designation:
+          type: string
+        quantite:
+          type: number
+        prixUnitaire:
+          type: number
+      required:
+        - designation
+        - quantite
+        - prixUnitaire
+
+    SortieArgent:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+          format: date
+        decaisse:
+          type: number
+        depense:
+          type: number
+        reste:
+          type: number
+      required:
+        - id
+        - date
+        - decaisse
+        - depense
+        - reste
+
+    CreateSortieBody:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        decaisse:
+          type: number
+        depense:
+          type: number
+      required:
+        - date
+        - decaisse
+        - depense
+
+    SortieCarburant:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+          format: date
+        montant:
+          type: number
+      required:
+        - id
+        - date
+        - montant
+
+    CreateSortieCarburantBody:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        montant:
+          type: number
+      required:
+        - date
+        - montant
+
+    DepenseDetaillee:
+      type: object
+      properties:
+        id:
+          type: integer
+        designation:
+          type: string
+        quantite:
+          type: number
+        prixUnitaire:
+          type: number
+        prixTotal:
+          type: number
+        categorie:
+          type: string
+          enum: [materiaux, main_oeuvre, transport, carburant, divers]
+        date:
+          type: string
+          format: date
+          nullable: true
+        commentaire:
+          type: string
+          nullable: true
+      required:
+        - id
+        - designation
+        - quantite
+        - prixUnitaire
+        - prixTotal
+
+    CreateDepenseDetaillee:
+      type: object
+      properties:
+        designation:
+          type: string
+        quantite:
+          type: number
+        prixUnitaire:
+          type: number
+        categorie:
+          type: string
+          enum: [materiaux, main_oeuvre, transport, carburant, divers]
+        date:
+          type: string
+          format: date
+          nullable: true
+        commentaire:
+          type: string
+          nullable: true
+      required:
+        - designation
+        - quantite
+        - prixUnitaire
+
+    Bande:
+      type: object
+      properties:
+        id:
+          type: integer
+        numero:
+          type: integer
+        nom:
+          type: string
+        dateDeDepart:
+          type: string
+          format: date
+        sujetsDepart:
+          type: integer
+        nombreDeces:
+          type: integer
+        valeurMaterielFixe:
+          type: number
+        statut:
+          type: string
+          enum: [active, terminee]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - numero
+        - nom
+        - dateDeDepart
+        - sujetsDepart
+        - nombreDeces
+        - valeurMaterielFixe
+        - statut
+        - createdAt
+
+    CreateBandeBody:
+      type: object
+      properties:
+        nom:
+          type: string
+        dateDeDepart:
+          type: string
+          format: date
+        sujetsDepart:
+          type: integer
+        nombreDeces:
+          type: integer
+        valeurMaterielFixe:
+          type: number
+        statut:
+          type: string
+          enum: [active, terminee]
+      required:
+        - nom
+        - sujetsDepart
+
+    BandeDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        numero:
+          type: integer
+        nom:
+          type: string
+        dateDeDepart:
+          type: string
+          format: date
+        sujetsDepart:
+          type: integer
+        nombreDeces:
+          type: integer
+        sujetsRestants:
+          type: integer
+        valeurMaterielFixe:
+          type: number
+        statut:
+          type: string
+          enum: [active, terminee]
+        totalDepenses:
+          type: number
+        totalRecettes:
+          type: number
+        chargesFixesTotal:
+          type: number
+        beneficeNet:
+          type: number
+        beneficeNetSansCharges:
+          type: number
+        coutParSujet:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - numero
+        - nom
+        - dateDeDepart
+        - sujetsDepart
+        - nombreDeces
+        - sujetsRestants
+        - valeurMaterielFixe
+        - statut
+        - totalDepenses
+        - totalRecettes
+        - chargesFixesTotal
+        - beneficeNet
+        - beneficeNetSansCharges
+        - coutParSujet
+        - createdAt
+
+    BandeDepense:
+      type: object
+      properties:
+        id:
+          type: integer
+        bandeId:
+          type: integer
+        designation:
+          type: string
+        categorie:
+          type: string
+          enum: [poussins, aliments, concentre, prophylaxie, carburant, salaires, transport, main_oeuvre, autre]
+        quantite:
+          type: number
+        prixUnitaire:
+          type: number
+        montant:
+          type: number
+      required:
+        - id
+        - bandeId
+        - designation
+        - categorie
+        - quantite
+        - prixUnitaire
+        - montant
+
+    CreateBandeDepenseBody:
+      type: object
+      properties:
+        designation:
+          type: string
+        categorie:
+          type: string
+          enum: [poussins, aliments, concentre, prophylaxie, carburant, salaires, transport, main_oeuvre, autre]
+        quantite:
+          type: number
+        prixUnitaire:
+          type: number
+      required:
+        - designation
+        - categorie
+        - quantite
+        - prixUnitaire
+
+    BandeVente:
+      type: object
+      properties:
+        id:
+          type: integer
+        bandeId:
+          type: integer
+        date:
+          type: string
+          format: date
+        quantiteVendue:
+          type: integer
+        prixUnitaire:
+          type: number
+        montant:
+          type: number
+      required:
+        - id
+        - bandeId
+        - date
+        - quantiteVendue
+        - prixUnitaire
+        - montant
+
+    CreateBandeVenteBody:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        quantiteVendue:
+          type: integer
+        prixUnitaire:
+          type: number
+      required:
+        - date
+        - quantiteVendue
+        - prixUnitaire
+
+    ChargesFixe:
+      type: object
+      properties:
+        id:
+          type: integer
+        bandeId:
+          type: integer
+        valeurPerdueMateriel:
+          type: number
+        imprévus:
+          type: number
+        loyer:
+          type: number
+        total:
+          type: number
+      required:
+        - id
+        - bandeId
+        - valeurPerdueMateriel
+        - imprévus
+        - loyer
+        - total
+
+    UpdateChargesFixeBody:
+      type: object
+      properties:
+        loyer:
+          type: number
+
+    DepenseVente:
+      type: object
+      properties:
+        id:
+          type: integer
+        bandeId:
+          type: integer
+        designation:
+          type: string
+        montant:
+          type: number
+      required:
+        - id
+        - bandeId
+        - designation
+        - montant
+
+    CreateDepenseVenteBody:
+      type: object
+      properties:
+        designation:
+          type: string
+        montant:
+          type: number
+      required:
+        - designation
+        - montant
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalFinance:
+          type: number
+        totalDevis:
+          type: number
+        totalDepenseConstruction:
+          type: number
+        caisseDisponible:
+          type: number
+        nombreBandes:
+          type: integer
+        bandesActives:
+          type: array
+          items:
+            $ref: "#/components/schemas/BandeSummary"
+        alerteDepassementBudget:
+          type: boolean
+        depensesParCategorie:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategorieDepense"
+      required:
+        - totalFinance
+        - totalDevis
+        - totalDepenseConstruction
+        - caisseDisponible
+        - nombreBandes
+        - bandesActives
+        - alerteDepassementBudget
+        - depensesParCategorie
+
+    BandeSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        sujetsVivants:
+          type: integer
+        coutProduction:
+          type: number
+        totalRecettes:
+          type: number
+        beneficeEstime:
+          type: number
+      required:
+        - id
+        - nom
+        - sujetsVivants
+        - coutProduction
+        - totalRecettes
+        - beneficeEstime
+
+    CategorieDepense:
+      type: object
+      properties:
+        categorie:
+          type: string
+        montant:
+          type: number
+      required:
+        - categorie
+        - montant
+
+    Remboursement:
+      type: object
+      properties:
+        id:
+          type: integer
+        investisseurNom:
+          type: string
+        montant:
+          type: number
+        date:
+          type: string
+        commentaire:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, investisseurNom, montant, date]
+
+    CreateRemboursementBody:
+      type: object
+      properties:
+        investisseurNom:
+          type: string
+        montant:
+          type: number
+        date:
+          type: string
+        commentaire:
+          type: string
+      required: [investisseurNom, montant, date]
+
+    SoldeInvestisseur:
+      type: object
+      properties:
+        nom:
+          type: string
+        totalInvesti:
+          type: number
+        totalRembourse:
+          type: number
+        soldeRestant:
+          type: number
+      required: [nom, totalInvesti, totalRembourse, soldeRestant]
+
+    RemboursementsResponse:
+      type: object
+      properties:
+        remboursements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Remboursement"
+        soldesInvestisseurs:
+          type: array
+          items:
+            $ref: "#/components/schemas/SoldeInvestisseur"
+      required: [remboursements, soldesInvestisseurs]
+
+    MortaliteEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        bandeId:
+          type: integer
+        date:
+          type: string
+        ageJours:
+          type: integer
+        decesJour:
+          type: integer
+        decesCumules:
+          type: integer
+        tauxMortalite:
+          type: number
+        alerteRouge:
+          type: boolean
+      required: [id, bandeId, date, ageJours, decesJour]
+
+    CreateMortaliteBody:
+      type: object
+      properties:
+        date:
+          type: string
+        ageJours:
+          type: integer
+        decesJour:
+          type: integer
+      required: [date, ageJours, decesJour]
+
+    PeseeEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        bandeId:
+          type: integer
+        date:
+          type: string
+        ageJours:
+          type: integer
+        poidsMoyenG:
+          type: number
+        objectifPoidsG:
+          type: number
+          nullable: true
+        ecart:
+          type: number
+          nullable: true
+        alertePoids:
+          type: boolean
+      required: [id, bandeId, date, ageJours, poidsMoyenG]
+
+    CreatePeseeBody:
+      type: object
+      properties:
+        date:
+          type: string
+        ageJours:
+          type: integer
+        poidsMoyenG:
+          type: number
+        objectifPoidsG:
+          type: number
+      required: [date, ageJours, poidsMoyenG]
+
+    ConsommationEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        bandeId:
+          type: integer
+        date:
+          type: string
+        quantiteKg:
+          type: number
+      required: [id, bandeId, date, quantiteKg]
+
+    CreateConsommationBody:
+      type: object
+      properties:
+        date:
+          type: string
+        quantiteKg:
+          type: number
+      required: [date, quantiteKg]
+
+    ConsommationResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsommationEntry"
+        totalAlimentKg:
+          type: number
+        ic:
+          type: number
+          nullable: true
+        icStatus:
+          type: string
+          nullable: true
+      required: [entries, totalAlimentKg]
+
+    VaccinationEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        bandeId:
+          type: integer
+        jourPrevu:
+          type: integer
+        nom:
+          type: string
+        description:
+          type: string
+          nullable: true
+        fait:
+          type: string
+        dateFait:
+          type: string
+          nullable: true
+        commentaire:
+          type: string
+          nullable: true
+        datePrevue:
+          type: string
+        enRetard:
+          type: boolean
+      required: [id, bandeId, jourPrevu, nom, fait]
+
+    CreateVaccinationBody:
+      type: object
+      properties:
+        jourPrevu:
+          type: integer
+        nom:
+          type: string
+        description:
+          type: string
+      required: [jourPrevu, nom]
+
+    UpdateVaccinationBody:
+      type: object
+      properties:
+        fait:
+          type: string
+        dateFait:
+          type: string
+        commentaire:
+          type: string
+
+    ComparaisonBande:
+      type: object
+      properties:
+        id:
+          type: integer
+        numero:
+          type: integer
+        nom:
+          type: string
+        statut:
+          type: string
+        sujetsDepart:
+          type: integer
+        nombreDeces:
+          type: integer
+        tauxMortalite:
+          type: number
+        coutParSujet:
+          type: number
+        prixVenteMoyen:
+          type: number
+        beneficeNet:
+          type: number
+        dureeJours:
+          type: integer
+        totalVendus:
+          type: integer
+        seuilNombrePoulets:
+          type: integer
+        seuilPrixMin:
+          type: number
+        margeSecurite:
+          type: number
+      required: [id, numero, nom, statut, sujetsDepart]
+
+    CaisseEntry:
+      type: object
+      properties:
+        date:
+          type: string
+        type:
+          type: string
+          enum: [entree, sortie]
+        categorie:
+          type: string
+        designation:
+          type: string
+        montant:
+          type: number
+        soldeApres:
+          type: number
+      required: [date, type, categorie, designation, montant, soldeApres]
+
+    HistoriqueCaisseResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaisseEntry"
+        soldeCourant:
+          type: number
+      required: [entries, soldeCourant]
+
+    ActivityLogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+          nullable: true
+        userNom:
+          type: string
+        action:
+          type: string
+        details:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, userNom, action]
