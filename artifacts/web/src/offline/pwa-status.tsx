@@ -51,16 +51,20 @@ export function PwaStatus() {
   return (
     <>
       {needRefresh && (
-        <div className="fixed bottom-4 right-4 z-50 rounded-lg border bg-background p-4 shadow-lg">
-          <p className="mb-3 text-sm font-medium">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] left-3 right-3 z-50 rounded-lg border bg-background p-3 shadow-lg sm:left-auto sm:right-4 sm:w-full sm:max-w-md sm:p-4"
+        >
+          <p className="mb-3 text-sm font-medium leading-snug">
             Une nouvelle version de Farm Manager est disponible.
           </p>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
               onClick={() => void updateServiceWorker(true)}
-              className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground"
+              className="min-h-10 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
             >
               Mettre à jour
             </button>
@@ -68,7 +72,7 @@ export function PwaStatus() {
             <button
               type="button"
               onClick={() => setNeedRefresh(false)}
-              className="rounded-md border px-3 py-2 text-sm"
+              className="min-h-10 rounded-md border px-3 py-2 text-sm font-medium"
             >
               Plus tard
             </button>
