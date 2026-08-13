@@ -67,7 +67,7 @@ export async function syncOutbox() {
                 error,
             );
 
-            await markAsError(operation.id);
+            await markAsError(operation.id, error);
 
             const failedOperation =
                 await getOutboxOperation(operation.id);
