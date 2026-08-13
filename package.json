@@ -9,12 +9,14 @@
     "dev:web": "pnpm --filter @workspace/web run dev",
     "db:push": "pnpm --filter @workspace/db run push",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "test": "tsx --test",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
   "private": true,
   "devDependencies": {
     "prettier": "^3.8.1",
+    "tsx": "catalog:",
     "typescript": "~5.9.2"
   },
   "dependencies": {

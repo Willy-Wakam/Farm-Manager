@@ -15,6 +15,7 @@ Il exécute :
 
 - `pnpm install --frozen-lockfile`
 - `pnpm run typecheck`
+- `pnpm run test`
 - `pnpm -r --if-present run build`
 - un contrôle qui empêche de re-versionner les artefacts générés (`dist` et `dev-dist`)
 

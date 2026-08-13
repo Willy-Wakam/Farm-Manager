@@ -47,6 +47,9 @@ jobs:
       - name: Typecheck workspace
         run: pnpm run typecheck
 
+      - name: Run tests
+        run: pnpm run test
+
       - name: Build deployable artifacts
         run: pnpm -r --if-present run build
 

@@ -48,6 +48,7 @@ testem.log
 /typings
 .cache/
 .local/
+.pnpm-store/
 
 # System Files
 .DS_Store
