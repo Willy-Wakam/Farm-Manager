@@ -9,6 +9,8 @@
     "dev:web": "pnpm --filter @workspace/web run dev",
     "db:push": "pnpm --filter @workspace/db run push",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "test": "pnpm -r --if-present run test",
+    "test:integration": "pnpm --filter @workspace/api-server run test:integration",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
