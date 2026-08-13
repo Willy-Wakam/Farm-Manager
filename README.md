@@ -145,6 +145,9 @@ d'en-tête. Les feuilles sans données exploitables sont ignorées.
 L'architecture du monorepo, les conventions TypeScript et le détail des paquets
 sont décrits dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+Le flux de déploiement Render et les garde-fous GitHub Actions sont décrits dans
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 ---
 
 ## Licence
