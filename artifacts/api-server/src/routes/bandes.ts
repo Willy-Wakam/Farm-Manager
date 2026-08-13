@@ -784,6 +784,7 @@ router.get("/:id/observations", async (req, res) => {
       date: r.date,
       ageJours: r.ageJours,
       contenu: r.contenu,
+      clientMutationId: r.clientMutationId,
     })),
   );
 });

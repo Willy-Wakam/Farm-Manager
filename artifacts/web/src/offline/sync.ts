@@ -1,6 +1,7 @@
 import { isOnline, isApiAvailable } from "./network";
 import {
   getPendingOperations,
+  isOfflineCreatePayload,
   markAsSyncing,
   markAsError,
   markAsFailed,
@@ -17,6 +18,17 @@ export interface SyncOutboxResult {
   temporaryErrorCount: number;
   finalErrorCount: number;
   skippedCount: number;
+}
+
+export const OUTBOX_OPERATION_SYNCED_EVENT =
+  "farm-manager:outbox-operation-synced";
+
+export interface OutboxOperationSyncedDetail {
+  entity: string;
+  operation: "CREATE" | "UPDATE" | "DELETE";
+  entityId: string;
+  payload: unknown;
+  serverResult: unknown;
 }
 
 class PermanentSyncError extends Error {
@@ -58,6 +70,35 @@ function throwSyncHttpError(response: Response, message: string): never {
   }
 
   throw new Error(errorMessage);
+}
+
+function notifyOperationSynced(
+  operation: {
+    entity: string;
+    operation: "CREATE" | "UPDATE" | "DELETE";
+    entityId: string;
+    payload: unknown;
+  },
+  serverResult: unknown,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent<OutboxOperationSyncedDetail>(
+      OUTBOX_OPERATION_SYNCED_EVENT,
+      {
+        detail: {
+          entity: operation.entity,
+          operation: operation.operation,
+          entityId: operation.entityId,
+          payload: operation.payload,
+          serverResult,
+        },
+      },
+    ),
+  );
 }
 
 export async function syncOutbox(): Promise<SyncOutboxResult> {
@@ -109,9 +150,10 @@ export async function syncOutbox(): Promise<SyncOutboxResult> {
       try {
         await markAsSyncing(operation.id);
 
-        await sendOperationToServer(operation);
+        const serverResult = await sendOperationToServer(operation);
 
         await removeFromOutbox(operation.id);
+        notifyOperationSynced(operation, serverResult);
         result.successCount += 1;
 
         console.log(`[sync] Opération ${operation.id} synchronisée.`);
@@ -147,9 +189,14 @@ async function syncObservation(operation: {
   const payload = operation.payload as {
     bandeId: number;
     data?: Record<string, unknown>;
+    clientMutationId?: string;
   };
 
   if (operation.operation === "CREATE") {
+    const clientMutationId = isOfflineCreatePayload(operation.payload)
+      ? operation.payload.clientMutationId
+      : (payload.clientMutationId ?? operation.entityId);
+
     const response = await fetch(
       `/api/bandes/${payload.bandeId}/observations`,
       {
@@ -160,7 +207,7 @@ async function syncObservation(operation: {
         },
         body: JSON.stringify({
           ...payload.data,
-          clientMutationId: operation.entityId,
+          clientMutationId,
         }),
       },
     );
