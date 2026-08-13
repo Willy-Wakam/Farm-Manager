@@ -2,6 +2,53 @@ import { offlineDb, type PendingOperation } from "./db";
 export const MAX_RETRY_COUNT = 3;
 type OutboxStatus = PendingOperation["status"];
 
+export interface OfflineCreatePayload<
+  TData extends Record<string, unknown> = Record<string, unknown>,
+> {
+  bandeId: number;
+  localEntityId: string;
+  clientMutationId: string;
+  data: TData & {
+    clientMutationId: string;
+  };
+}
+
+export function createLocalEntityId() {
+  return crypto.randomUUID();
+}
+
+export function buildOfflineCreatePayload<
+  TData extends Record<string, unknown>,
+>(
+  bandeId: number,
+  data: TData,
+  localEntityId = createLocalEntityId(),
+): OfflineCreatePayload<TData> {
+  return {
+    bandeId,
+    localEntityId,
+    clientMutationId: localEntityId,
+    data: {
+      ...data,
+      clientMutationId: localEntityId,
+    },
+  };
+}
+
+export function isOfflineCreatePayload(
+  payload: unknown,
+): payload is OfflineCreatePayload {
+  return (
+    Boolean(payload) &&
+    typeof payload === "object" &&
+    typeof (payload as OfflineCreatePayload).bandeId === "number" &&
+    typeof (payload as OfflineCreatePayload).localEntityId === "string" &&
+    typeof (payload as OfflineCreatePayload).clientMutationId === "string" &&
+    Boolean((payload as OfflineCreatePayload).data) &&
+    typeof (payload as OfflineCreatePayload).data === "object"
+  );
+}
+
 function isRetryableError(operation: PendingOperation) {
   return operation.status === "error" && operation.retryCount < MAX_RETRY_COUNT;
 }

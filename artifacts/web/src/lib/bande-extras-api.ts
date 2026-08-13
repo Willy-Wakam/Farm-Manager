@@ -1,9 +1,15 @@
 import {
   addToOutbox,
+  buildOfflineCreatePayload,
   removePendingCreateByEntityId,
 } from "@/offline/outbox";
 import { useAppNetworkStatus } from "@/offline/network-provider";
+import {
+  OUTBOX_OPERATION_SYNCED_EVENT,
+  type OutboxOperationSyncedDetail,
+} from "@/offline/sync";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 const BASE = `${import.meta.env.BASE_URL}api/bandes`;
 
@@ -68,6 +74,37 @@ export function useDeleteTraitement(bandeId: number) {
 }
 
 export function useObservations(bandeId: number) {
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<OutboxOperationSyncedDetail>).detail;
+
+      if (detail.entity !== "observation" || detail.operation !== "CREATE") {
+        return;
+      }
+
+      const payload = detail.payload as { bandeId?: number };
+
+      if (payload.bandeId !== bandeId) {
+        return;
+      }
+
+      replaceObservationInCache(
+        qc,
+        bandeId,
+        detail.entityId,
+        detail.serverResult,
+      );
+    };
+
+    window.addEventListener(OUTBOX_OPERATION_SYNCED_EVENT, handler);
+
+    return () => {
+      window.removeEventListener(OUTBOX_OPERATION_SYNCED_EVENT, handler);
+    };
+  }, [bandeId, qc]);
+
   return useQuery({
     queryKey: getObservationsQueryKey(bandeId),
     queryFn: () => fetchObservations(bandeId),
@@ -96,10 +133,11 @@ export function useCreateObservation(bandeId: number) {
       }
 
       // Offline / serveur inaccessible
-      const localId = crypto.randomUUID();
+      const offlineCreate = buildOfflineCreatePayload(bandeId, data);
+      const localId = offlineCreate.localEntityId;
 
       const localObservation = {
-        ...data,
+        ...offlineCreate.data,
         id: localId,
         _offline: true,
         _pendingSync: true,
@@ -109,21 +147,13 @@ export function useCreateObservation(bandeId: number) {
         entity: "observation",
         operation: "CREATE",
         entityId: localId,
-        payload: {
-          bandeId,
-          data,
-        },
+        payload: offlineCreate,
       });
 
       // Affichage immédiat dans l'interface
 qc.setQueryData(
   getObservationsQueryKey(bandeId),
   (current: any) => {
-    console.log(
-      "[observation] cache actuel:",
-      current,
-    );
-
     // Cas normal : l'API retourne directement un tableau
     if (Array.isArray(current)) {
       return [
@@ -208,6 +238,41 @@ function removeObservationFromCache(
   );
 }
 
+function replaceObservationInCache(
+  qc: ReturnType<typeof useQueryClient>,
+  bandeId: number,
+  localId: string,
+  serverObservation: unknown,
+) {
+  qc.setQueryData(
+    getObservationsQueryKey(bandeId),
+    (current: any) => {
+      const replace = (observations: any[]) =>
+        observations.map((observation) =>
+          String(observation.id) === String(localId)
+            ? serverObservation
+            : observation,
+        );
+
+      if (Array.isArray(current)) {
+        return replace(current);
+      }
+
+      if (
+        current &&
+        Array.isArray(current.data)
+      ) {
+        return {
+          ...current,
+          data: replace(current.data),
+        };
+      }
+
+      return current;
+    },
+  );
+}
+
 export function useDeleteObservation(bandeId: number) {
   const qc = useQueryClient();
   const { status } = useAppNetworkStatus();
@@ -220,25 +285,15 @@ export function useDeleteObservation(bandeId: number) {
        * Cas 1 :
        * observation créée localement et pas encore synchronisée.
        *
-       * Son UUID est également l'id de son opération CREATE
-       * dans l'Outbox.
+       * Son UUID est l'entityId de l'opération CREATE
+       * dans l'Outbox; l'id de l'opération reste distinct.
        */
 if (typeof obsId === "string") {
-  console.log(
-    "[observation-delete] annulation locale:",
-    obsId,
-  );
-
   const cancelled =
     await removePendingCreateByEntityId(
       "observation",
       obsId,
     );
-
-  console.log(
-    "[observation-delete] CREATE annulé:",
-    cancelled,
-  );
 
   if (!cancelled) {
     throw new Error(
