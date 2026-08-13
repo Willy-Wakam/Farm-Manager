@@ -23,6 +23,7 @@ import { Plus, Trash2, ArrowRight, Bird, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { CreateBandeBodyStatut } from "@workspace/api-client-react";
+import { PageHeader, PageHeaderActions, PageHeaderContent } from "@/components/ui/responsive-layout";
 
 const bandeSchema = z.object({
   nom: z.string().min(1, "Le nom est requis"),
@@ -133,13 +134,13 @@ export default function Bandes() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight font-serif text-foreground">Bandes de poulets</h1>
+      <PageHeader>
+        <PageHeaderContent>
+          <h1 className="truncate text-3xl font-bold tracking-tight font-serif text-foreground">Bandes de poulets</h1>
           <p className="text-muted-foreground mt-1">Gestion des cycles de production</p>
-        </div>
+        </PageHeaderContent>
         {!isReadOnly && (
-          <div className="flex gap-2">
+          <PageHeaderActions>
             <input
               ref={fichierInputRef}
               type="file"
@@ -149,7 +150,7 @@ export default function Bandes() {
             />
             <Button
               variant="outline"
-              className="gap-2"
+              className="w-full gap-2 sm:w-auto"
               onClick={() => fichierInputRef.current?.click()}
               disabled={importing}
               title="Importer un classeur Excel de suivi : une feuille par bande"
@@ -162,7 +163,7 @@ export default function Bandes() {
               if (!open) form.reset();
             }}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
+                <Button className="w-full gap-2 sm:w-auto">
                   <Plus className="h-4 w-4" />
                   Nouvelle bande
                 </Button>
@@ -241,9 +242,9 @@ export default function Bandes() {
                 </Form>
               </DialogContent>
             </Dialog>
-          </div>
+          </PageHeaderActions>
         )}
-      </div>
+      </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {bandes?.length === 0 ? (
