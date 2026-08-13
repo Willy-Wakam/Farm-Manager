@@ -32,6 +32,15 @@ export interface OfflineEntity {
   updatedAt?: string;
 }
 
+const offlineDataTableNames = [
+  "outbox",
+  "queryCache",
+  "bandes",
+  "depenses",
+  "stocks",
+  "financements",
+] as const;
+
 class FarmManagerDB extends Dexie {
   outbox!: Table<PendingOperation, string>;
 
@@ -77,6 +86,60 @@ class FarmManagerDB extends Dexie {
 }
 
 export const offlineDb = new FarmManagerDB();
+
+async function hasLegacyOfflineData() {
+  const counts = await Promise.all(
+    offlineDataTableNames.map((tableName) =>
+      offlineDb.table(tableName).count(),
+    ),
+  );
+
+  return counts.some((count) => count > 0);
+}
+
+export async function clearOfflineBrowserScope() {
+  const scopedTables = [
+    offlineDb.auth,
+    offlineDb.outbox,
+    offlineDb.queryCache,
+    offlineDb.bandes,
+    offlineDb.depenses,
+    offlineDb.stocks,
+    offlineDb.financements,
+  ];
+
+  await offlineDb.transaction(
+    "rw",
+    scopedTables,
+    async () => {
+      await Promise.all([
+        offlineDb.auth.clear(),
+        offlineDb.outbox.clear(),
+        offlineDb.queryCache.clear(),
+        offlineDb.bandes.clear(),
+        offlineDb.depenses.clear(),
+        offlineDb.stocks.clear(),
+        offlineDb.financements.clear(),
+      ]);
+    },
+  );
+}
+
+export async function prepareOfflineStorageForUser(userId: number) {
+  const existingUser = await offlineDb.auth.toCollection().first();
+
+  if (existingUser && existingUser.id !== userId) {
+    await clearOfflineBrowserScope();
+    return true;
+  }
+
+  if (!existingUser && (await hasLegacyOfflineData())) {
+    await clearOfflineBrowserScope();
+    return true;
+  }
+
+  return false;
+}
 
 offlineDb
   .open()

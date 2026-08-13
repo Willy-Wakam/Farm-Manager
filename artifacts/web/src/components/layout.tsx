@@ -29,6 +29,10 @@ import {
   saveOfflineUser,
   clearOfflineUser,
 } from "@/offline/auth";
+import {
+  clearOfflineBrowserScope,
+  prepareOfflineStorageForUser,
+} from "@/offline/db";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useNomFerme } from "@/lib/ferme";
@@ -59,12 +63,28 @@ const {
     return;
   }
 
-  void saveOfflineUser({
-    id: user.id,
-    username: user.username,
-    nom: user.nom,
-    role: user.role,
-  });
+  void (async () => {
+    const scopeCleared = await prepareOfflineStorageForUser(user.id);
+
+    if (scopeCleared) {
+      const meQueryKey = getGetMeQueryKey();
+
+      queryClient.removeQueries({
+        predicate: (query) => query.queryKey[0] !== meQueryKey[0],
+      });
+    }
+
+    await saveOfflineUser({
+      id: user.id,
+      username: user.username,
+      nom: user.nom,
+      role: user.role,
+    });
+
+    if (isOnline) {
+      syncOutbox();
+    }
+  })();
 
   if (
     !isLoading &&
@@ -74,10 +94,7 @@ const {
   ) {
     setLocation("/login");
   }
-    if (isOnline) {
-      syncOutbox();
-    }
-  }, [user, isLoading, location, setLocation, isOnline]);
+  }, [user, isLoading, location, setLocation, isOnline, status, queryClient]);
 
   if (isLoading) {
     return (
@@ -98,6 +115,8 @@ const handleLogout = async () => {
   try {
     await logout.mutateAsync();
     await clearOfflineUser();
+    await clearOfflineBrowserScope();
+    queryClient.clear();
 
     // Remove the authenticated user from the React Query cache
     queryClient.removeQueries({
