@@ -1,9 +1,17 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 const router = Router();
+
+type SessionWithUser = Request["session"] & {
+  userId?: number;
+};
+
+function getSessionUserId(req: Request): number | undefined {
+  return (req.session as SessionWithUser | undefined)?.userId;
+}
 
 async function verifyPassword(stored: string, input: string): Promise<boolean> {
   if (stored.startsWith("$2a$") || stored.startsWith("$2b$")) {
@@ -17,6 +25,36 @@ async function migratePasswordIfNeeded(userId: number, stored: string, plaintext
     const hashed = await bcrypt.hash(plaintext, 10);
     await db.update(usersTable).set({ password: hashed }).where(eq(usersTable.id, userId));
   }
+}
+
+async function getCurrentUser(req: Request, res: Response) {
+  const userId = getSessionUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: "Non authentifié" });
+    return null;
+  }
+
+  const users = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  const user = users[0];
+
+  if (!user) {
+    res.status(401).json({ error: "Utilisateur introuvable" });
+    return null;
+  }
+
+  return user;
+}
+
+async function requireAdmin(req: Request, res: Response) {
+  const user = await getCurrentUser(req, res);
+  if (!user) return null;
+
+  if (user.role !== "admin") {
+    res.status(403).json({ error: "Accès refusé" });
+    return null;
+  }
+
+  return user;
 }
 
 router.post("/login", async (req, res) => {
@@ -48,6 +86,9 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/register", async (req, res) => {
+  const currentUser = await requireAdmin(req, res);
+  if (!currentUser) return;
+
   const { nom, username, password } = req.body;
   if (!nom || !username || !password) {
     res.status(400).json({ error: "Nom, identifiant et mot de passe requis" });
@@ -86,19 +127,8 @@ router.post("/logout", (req, res) => {
 });
 
 router.get("/me", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Non authentifié" });
-    return;
-  }
-
-  const users = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  const user = users[0];
-
-  if (!user) {
-    res.status(401).json({ error: "Utilisateur introuvable" });
-    return;
-  }
+  const user = await getCurrentUser(req, res);
+  if (!user) return;
 
   res.json({
     id: user.id,
@@ -109,13 +139,8 @@ router.get("/me", async (req, res) => {
 });
 
 router.get("/users", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) { res.status(401).json({ error: "Non authentifié" }); return; }
-  const currentUser = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  if (!currentUser[0] || currentUser[0].role !== "admin") {
-    res.status(403).json({ error: "Accès refusé" });
-    return;
-  }
+  const currentUser = await requireAdmin(req, res);
+  if (!currentUser) return;
 
   const allUsers = await db.select({
     id: usersTable.id,
@@ -129,13 +154,8 @@ router.get("/users", async (req, res) => {
 });
 
 router.put("/users/:id/role", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) { res.status(401).json({ error: "Non authentifié" }); return; }
-  const currentUser = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  if (!currentUser[0] || currentUser[0].role !== "admin") {
-    res.status(403).json({ error: "Accès refusé" });
-    return;
-  }
+  const currentUser = await requireAdmin(req, res);
+  if (!currentUser) return;
 
   const targetId = parseInt(req.params.id);
   const { role } = req.body;
@@ -145,7 +165,7 @@ router.put("/users/:id/role", async (req, res) => {
     return;
   }
 
-  if (targetId === userId && role !== "admin") {
+  if (targetId === currentUser.id && role !== "admin") {
     res.status(400).json({ error: "Vous ne pouvez pas retirer vos propres droits admin" });
     return;
   }
@@ -157,16 +177,11 @@ router.put("/users/:id/role", async (req, res) => {
 });
 
 router.delete("/users/:id", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) { res.status(401).json({ error: "Non authentifié" }); return; }
-  const currentUser = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  if (!currentUser[0] || currentUser[0].role !== "admin") {
-    res.status(403).json({ error: "Accès refusé" });
-    return;
-  }
+  const currentUser = await requireAdmin(req, res);
+  if (!currentUser) return;
 
   const targetId = parseInt(req.params.id);
-  if (targetId === userId) {
+  if (targetId === currentUser.id) {
     res.status(400).json({ error: "Vous ne pouvez pas supprimer votre propre compte" });
     return;
   }
