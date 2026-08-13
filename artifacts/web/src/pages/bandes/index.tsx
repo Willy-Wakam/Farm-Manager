@@ -136,7 +136,7 @@ export default function Bandes() {
     <div className="space-y-6">
       <PageHeader>
         <PageHeaderContent>
-          <h1 className="truncate text-3xl font-bold tracking-tight font-serif text-foreground">Bandes de poulets</h1>
+          <h1 className="truncate text-2xl font-bold tracking-tight font-serif text-foreground sm:text-3xl">Bandes de poulets</h1>
           <p className="text-muted-foreground mt-1">Gestion des cycles de production</p>
         </PageHeaderContent>
         {!isReadOnly && (
@@ -155,8 +155,8 @@ export default function Bandes() {
               disabled={importing}
               title="Importer un classeur Excel de suivi : une feuille par bande"
             >
-              <Upload className="h-4 w-4" />
-              {importing ? "Import en cours..." : "Importer historique"}
+              <Upload className="h-4 w-4 shrink-0" />
+              <span className="truncate">{importing ? "Import en cours..." : "Importer historique"}</span>
             </Button>
             <Dialog open={isDialogOpen} onOpenChange={(open) => {
               setIsDialogOpen(open);
@@ -164,8 +164,8 @@ export default function Bandes() {
             }}>
               <DialogTrigger asChild>
                 <Button className="w-full gap-2 sm:w-auto">
-                  <Plus className="h-4 w-4" />
-                  Nouvelle bande
+                  <Plus className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Nouvelle bande</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -235,7 +235,7 @@ export default function Bandes() {
                       </FormItem>
                     )}
                   />
-                    <Button type="submit" className="w-full" disabled={createBande.isPending}>
+                    <Button type="submit" className="min-h-10 w-full" disabled={createBande.isPending}>
                       Créer
                     </Button>
                   </form>
@@ -256,16 +256,16 @@ export default function Bandes() {
           bandes?.map(bande => (
             <Link key={bande.id} href={`/bandes/${bande.id}`} className="block group">
               <Card className={`h-full transition-all hover:shadow-md hover:border-primary/50 cursor-pointer ${bande.statut === 'terminee' ? 'opacity-80 bg-muted/30' : ''}`}>
-                <CardHeader className="pb-3 flex flex-row items-start justify-between">
-                  <div>
-                    <CardTitle className="text-xl font-serif group-hover:text-primary transition-colors">
+                <CardHeader className="flex flex-col gap-2 pb-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <CardTitle className="truncate text-lg font-serif transition-colors group-hover:text-primary sm:text-xl">
                       {bande.nom}
                     </CardTitle>
                     <p className="text-xs text-muted-foreground mt-1">
                       N° {bande.numero} • Démarré le {format(new Date(bande.dateDeDepart + 'T00:00:00'), 'dd/MM/yyyy')}
                     </p>
                   </div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${bande.statut === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'}`}>
+                  <span className={`inline-flex w-fit shrink-0 items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${bande.statut === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'}`}>
                     {bande.statut === 'active' ? 'Active' : 'Terminée'}
                   </span>
                 </CardHeader>
@@ -279,8 +279,8 @@ export default function Bandes() {
                     <span className="font-medium text-destructive">{bande.nombreDeces}</span>
                   </div>
                 </CardContent>
-                <CardFooter className="pt-3 border-t flex justify-between items-center bg-muted/10 rounded-b-xl">
-                  <span className="text-sm font-medium text-primary flex items-center gap-1">
+                <CardFooter className="flex items-center justify-between gap-3 rounded-b-xl border-t bg-muted/10 pt-3">
+                  <span className="flex min-w-0 items-center gap-1 text-sm font-medium text-primary">
                     Voir détails <ArrowRight className="h-3 w-3" />
                   </span>
                   {!isReadOnly && user?.role === 'admin' && (

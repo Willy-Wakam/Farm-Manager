@@ -46,6 +46,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { PageHeader, PageHeaderContent } from "@/components/ui/responsive-layout";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -200,8 +201,8 @@ function DepensesGroupedTable({
 
   return (
     <div className="space-y-0">
-      <div className="px-6 pt-4 pb-3 border-b flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col gap-3 border-b px-4 pb-3 pt-4 sm:flex-row sm:items-center sm:px-6">
+        <div className="relative w-full flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             className="w-full pl-9 pr-3 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary"
@@ -211,7 +212,7 @@ function DepensesGroupedTable({
           />
         </div>
         {search && (
-          <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setSearch("")}>Effacer</button>
+          <button className="text-left text-xs text-muted-foreground hover:text-foreground sm:text-center" onClick={() => setSearch("")}>Effacer</button>
         )}
       </div>
       <div className="overflow-hidden">
@@ -250,7 +251,7 @@ function DepensesGroupedTable({
                         {isCollapsed ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                       </TableCell>
                       <TableCell colSpan={2} className="font-semibold">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium ${badgeColor}`}>{label}</span>
                           <span className="text-muted-foreground text-sm font-normal">
                             ({catItems.length} {catItems.length > 1 ? "lignes" : "ligne"})
@@ -350,8 +351,8 @@ function VentesGroupedTable({
 
   return (
     <div className="space-y-0">
-      <div className="px-6 pt-4 pb-3 border-b flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col gap-3 border-b px-4 pb-3 pt-4 sm:flex-row sm:items-center sm:px-6">
+        <div className="relative w-full flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             className="w-full pl-9 pr-3 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary"
@@ -361,7 +362,7 @@ function VentesGroupedTable({
           />
         </div>
         {search && (
-          <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setSearch("")}>Effacer</button>
+          <button className="text-left text-xs text-muted-foreground hover:text-foreground sm:text-center" onClick={() => setSearch("")}>Effacer</button>
         )}
       </div>
       <div className="overflow-hidden">
@@ -400,7 +401,7 @@ function VentesGroupedTable({
                         {isCollapsed ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                       </TableCell>
                       <TableCell colSpan={2} className="font-semibold">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium bg-emerald-100 text-emerald-800 border-emerald-200 capitalize">{dateLabel}</span>
                           <span className="text-muted-foreground text-sm font-normal">
                             ({dayItems.length} {dayItems.length > 1 ? "transactions" : "transaction"} — {totalQty} sujets)
@@ -547,11 +548,11 @@ function BandeChargesFixesPanel({ bandeId, isReadOnly, chargesFixes, detail }: {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg">Actifs utilisés pour cette bande</CardTitle>
             {!isReadOnly && !addingActif && actifsDispo.length > 0 && (
-              <Button size="sm" variant="outline" onClick={() => setAddingActif(true)}>
-                <Plus className="h-4 w-4 mr-1" />Associer un actif
+              <Button size="sm" variant="outline" className="w-full gap-2 sm:w-auto" onClick={() => setAddingActif(true)}>
+                <Plus className="h-4 w-4 shrink-0" />Associer un actif
               </Button>
             )}
           </div>
@@ -561,7 +562,7 @@ function BandeChargesFixesPanel({ bandeId, isReadOnly, chargesFixes, detail }: {
           {addingActif && (
             <div className="p-4 border rounded-lg bg-muted/20 space-y-3">
               <div className="font-medium text-sm">Ajouter un actif</div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Actif</label>
                   <select
@@ -580,9 +581,9 @@ function BandeChargesFixesPanel({ bandeId, isReadOnly, chargesFixes, detail }: {
                   <Input type="number" min={1} max={100} step={1} value={fraction} onChange={e => setFraction(e.target.value)} />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button size="sm" disabled={!selectedActifId || addAllocation.isPending} onClick={() => addAllocation.mutate({ actifId: parseInt(selectedActifId), fractionUtilisee: parseFloat(fraction) / 100 })}>Confirmer</Button>
-                <Button size="sm" variant="outline" onClick={() => setAddingActif(false)}>Annuler</Button>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <Button size="sm" className="w-full sm:w-auto" disabled={!selectedActifId || addAllocation.isPending} onClick={() => addAllocation.mutate({ actifId: parseInt(selectedActifId), fractionUtilisee: parseFloat(fraction) / 100 })}>Confirmer</Button>
+                <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => setAddingActif(false)}>Annuler</Button>
               </div>
             </div>
           )}
@@ -596,14 +597,14 @@ function BandeChargesFixesPanel({ bandeId, isReadOnly, chargesFixes, detail }: {
           ) : (
             <div className="space-y-2">
               {allocations.map((a: BandeActifAllocation) => (
-                <div key={a.id} className="flex items-center gap-3 p-3 border rounded-lg bg-card">
-                  <div className="flex-1">
+                <div key={a.id} className="flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
                     <div className="font-medium text-sm">{a.actif.nom}</div>
                     <div className="text-xs text-muted-foreground">
                       {typeLabel[a.actif.type] || a.actif.type} · {formatFCFA(a.actif.valeur)} · Taux : {a.actif.tauxAmortissementAnnuel}%/an
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <div className="text-sm font-semibold">{formatFCFA(a.amortissement)}</div>
                     <div className="text-xs text-muted-foreground">{Math.round(a.fractionUtilisee * 100)}% utilisé</div>
                   </div>
@@ -1025,25 +1026,31 @@ const onObservationSubmit = async (
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/bandes">
-          <Button variant="outline" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button>
-        </Link>
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight font-serif text-foreground">{detail.nom}</h1>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${detail.statut === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-              {detail.statut === 'active' ? 'Active' : 'Terminée'}
-            </span>
-          </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            N° {detail.numero} | Départ : {detail.sujetsDepart} sujets | Restants : {detail.sujetsRestants} sujets
-          </p>
+      <PageHeader className="sm:items-center">
+        <div className="flex min-w-0 items-start gap-3">
+          <Link href="/bandes">
+            <Button variant="outline" size="icon" className="h-10 w-10 shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <PageHeaderContent>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h1 className="min-w-0 max-w-full truncate text-2xl font-bold tracking-tight font-serif text-foreground sm:text-3xl">{detail.nom}</h1>
+              <span className={`inline-flex w-fit shrink-0 items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${detail.statut === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                {detail.statut === 'active' ? 'Active' : 'Terminée'}
+              </span>
+            </div>
+            <p className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              <span>N° {detail.numero}</span>
+              <span>Départ : {detail.sujetsDepart} sujets</span>
+              <span>Restants : {detail.sujetsRestants} sujets</span>
+            </p>
+          </PageHeaderContent>
         </div>
-      </div>
+      </PageHeader>
 
       <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForms(); }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {dialogType === "mortalite" && "Ajouter une entrée de mortalité"}
@@ -1071,7 +1078,7 @@ const onObservationSubmit = async (
                 <FormField control={mortaliteForm.control} name="decesJour" render={({ field }) => (
                   <FormItem><FormLabel>Décès ce jour</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <Button type="submit" className="w-full">Enregistrer</Button>
+                <Button type="submit" className="min-h-10 w-full">Enregistrer</Button>
               </form>
             </Form>
           )}
@@ -1091,7 +1098,7 @@ const onObservationSubmit = async (
                 <FormField control={peseeForm.control} name="objectifPoidsG" render={({ field }) => (
                   <FormItem><FormLabel>Objectif poids (g) - optionnel</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <Button type="submit" className="w-full">Enregistrer</Button>
+                <Button type="submit" className="min-h-10 w-full">Enregistrer</Button>
               </form>
             </Form>
           )}
@@ -1105,7 +1112,7 @@ const onObservationSubmit = async (
                 <FormField control={consommationForm.control} name="quantiteKg" render={({ field }) => (
                   <FormItem><FormLabel>Quantité aliment (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <Button type="submit" className="w-full">Enregistrer</Button>
+                <Button type="submit" className="min-h-10 w-full">Enregistrer</Button>
               </form>
             </Form>
           )}
@@ -1122,7 +1129,7 @@ const onObservationSubmit = async (
                 <FormField control={vaccinForm.control} name="description" render={({ field }) => (
                   <FormItem><FormLabel>Description (optionnel)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <Button type="submit" className="w-full">Enregistrer</Button>
+                <Button type="submit" className="min-h-10 w-full">Enregistrer</Button>
               </form>
             </Form>
           )}
@@ -1139,7 +1146,7 @@ const onObservationSubmit = async (
                 <FormField control={eauForm.control} name="quantiteLitres" render={({ field }) => (
                   <FormItem><FormLabel>Quantité (litres)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <Button type="submit" className="w-full">Enregistrer</Button>
+                <Button type="submit" className="min-h-10 w-full">Enregistrer</Button>
               </form>
             </Form>
           )}
@@ -1177,7 +1184,7 @@ const onObservationSubmit = async (
                 <FormField control={traitementForm.control} name="observations" render={({ field }) => (
                   <FormItem><FormLabel>Observations (optionnel)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <Button type="submit" className="w-full">Enregistrer</Button>
+                <Button type="submit" className="min-h-10 w-full">Enregistrer</Button>
               </form>
             </Form>
           )}
@@ -1194,7 +1201,7 @@ const onObservationSubmit = async (
                 <FormField control={observationForm.control} name="contenu" render={({ field }) => (
                   <FormItem><FormLabel>Observation</FormLabel><FormControl><Textarea placeholder="Notes du jour..." {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <Button type="submit" className="w-full">Enregistrer</Button>
+                <Button type="submit" className="min-h-10 w-full">Enregistrer</Button>
               </form>
             </Form>
           )}
@@ -1220,7 +1227,7 @@ const onObservationSubmit = async (
                 <FormField control={depenseForm.control} name="designation" render={({ field }) => (
                   <FormItem><FormLabel>Désignation</FormLabel><FormControl><DesignationCombobox value={field.value} onChange={field.onChange} suggestions={designationSuggestions} placeholder="Ex: Aliment démarrage" /></FormControl><FormMessage /></FormItem>
                 )} />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <FormField control={depenseForm.control} name="quantite" render={({ field }) => (
                     <FormItem><FormLabel>Quantité</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
@@ -1228,7 +1235,7 @@ const onObservationSubmit = async (
                     <FormItem><FormLabel>Prix U. (FCFA)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </div>
-                <Button type="submit" className="w-full">Enregistrer</Button>
+                <Button type="submit" className="min-h-10 w-full">Enregistrer</Button>
               </form>
             </Form>
           )}
@@ -1239,7 +1246,7 @@ const onObservationSubmit = async (
                 <FormField control={venteForm.control} name="date" render={({ field }) => (
                   <FormItem><FormLabel>Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <FormField control={venteForm.control} name="quantiteVendue" render={({ field }) => (
                     <FormItem><FormLabel>Quantité vendue</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
@@ -1247,7 +1254,7 @@ const onObservationSubmit = async (
                     <FormItem><FormLabel>Prix unitaire (FCFA)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </div>
-                <Button type="submit" className="w-full">Enregistrer</Button>
+                <Button type="submit" className="min-h-10 w-full">Enregistrer</Button>
               </form>
             </Form>
           )}
@@ -1261,29 +1268,29 @@ const onObservationSubmit = async (
                 <FormField control={depenseVenteForm.control} name="montant" render={({ field }) => (
                   <FormItem><FormLabel>Montant (FCFA)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <Button type="submit" className="w-full">Enregistrer</Button>
+                <Button type="submit" className="min-h-10 w-full">Enregistrer</Button>
               </form>
             </Form>
           )}
         </DialogContent>
       </Dialog>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex flex-wrap w-full bg-muted/50 p-1 mb-6 h-auto gap-1">
-          <TabsTrigger value="resume" className="flex gap-1 text-xs sm:text-sm"><Info className="h-4 w-4" /><span className="hidden sm:inline">Résumé</span></TabsTrigger>
-          <TabsTrigger value="depenses" className="flex gap-1 text-xs sm:text-sm"><Receipt className="h-4 w-4" /><span className="hidden sm:inline">Dépenses</span></TabsTrigger>
-          <TabsTrigger value="ventes" className="flex gap-1 text-xs sm:text-sm"><ShoppingCart className="h-4 w-4" /><span className="hidden sm:inline">Ventes</span></TabsTrigger>
-          <TabsTrigger value="mortalite" className="flex gap-1 text-xs sm:text-sm"><Skull className="h-4 w-4" /><span className="hidden sm:inline">Mortalité</span></TabsTrigger>
-          <TabsTrigger value="pesees" className="flex gap-1 text-xs sm:text-sm"><Scale className="h-4 w-4" /><span className="hidden sm:inline">Pesées & IC</span></TabsTrigger>
-          <TabsTrigger value="vaccinations" className="flex gap-1 text-xs sm:text-sm"><Syringe className="h-4 w-4" /><span className="hidden sm:inline">Vaccins</span></TabsTrigger>
-          <TabsTrigger value="eau" className="flex gap-1 text-xs sm:text-sm"><Droplets className="h-4 w-4" /><span className="hidden sm:inline">Eau</span></TabsTrigger>
-          <TabsTrigger value="traitements" className="flex gap-1 text-xs sm:text-sm"><Pill className="h-4 w-4" /><span className="hidden sm:inline">Traitements</span></TabsTrigger>
-          <TabsTrigger value="journal" className="flex gap-1 text-xs sm:text-sm"><BookOpen className="h-4 w-4" /><span className="hidden sm:inline">Journal</span></TabsTrigger>
-          <TabsTrigger value="charges" className="flex gap-1 text-xs sm:text-sm"><CheckSquare className="h-4 w-4" /><span className="hidden sm:inline">Charges</span></TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
+        <TabsList className="mb-6 flex h-11 w-full flex-nowrap justify-start gap-1 overflow-x-auto bg-muted/50 p-1">
+          <TabsTrigger value="resume" className="flex min-w-fit gap-1 px-2 text-xs sm:px-3 sm:text-sm"><Info className="h-4 w-4 shrink-0" /><span>Résumé</span></TabsTrigger>
+          <TabsTrigger value="depenses" className="flex min-w-fit gap-1 px-2 text-xs sm:px-3 sm:text-sm"><Receipt className="h-4 w-4 shrink-0" /><span>Dépenses</span></TabsTrigger>
+          <TabsTrigger value="ventes" className="flex min-w-fit gap-1 px-2 text-xs sm:px-3 sm:text-sm"><ShoppingCart className="h-4 w-4 shrink-0" /><span>Ventes</span></TabsTrigger>
+          <TabsTrigger value="mortalite" className="flex min-w-fit gap-1 px-2 text-xs sm:px-3 sm:text-sm"><Skull className="h-4 w-4 shrink-0" /><span>Mortalité</span></TabsTrigger>
+          <TabsTrigger value="pesees" className="flex min-w-fit gap-1 px-2 text-xs sm:px-3 sm:text-sm"><Scale className="h-4 w-4 shrink-0" /><span>Pesées & IC</span></TabsTrigger>
+          <TabsTrigger value="vaccinations" className="flex min-w-fit gap-1 px-2 text-xs sm:px-3 sm:text-sm"><Syringe className="h-4 w-4 shrink-0" /><span>Vaccins</span></TabsTrigger>
+          <TabsTrigger value="eau" className="flex min-w-fit gap-1 px-2 text-xs sm:px-3 sm:text-sm"><Droplets className="h-4 w-4 shrink-0" /><span>Eau</span></TabsTrigger>
+          <TabsTrigger value="traitements" className="flex min-w-fit gap-1 px-2 text-xs sm:px-3 sm:text-sm"><Pill className="h-4 w-4 shrink-0" /><span>Traitements</span></TabsTrigger>
+          <TabsTrigger value="journal" className="flex min-w-fit gap-1 px-2 text-xs sm:px-3 sm:text-sm"><BookOpen className="h-4 w-4 shrink-0" /><span>Journal</span></TabsTrigger>
+          <TabsTrigger value="charges" className="flex min-w-fit gap-1 px-2 text-xs sm:px-3 sm:text-sm"><CheckSquare className="h-4 w-4 shrink-0" /><span>Charges</span></TabsTrigger>
         </TabsList>
 
         <TabsContent value="resume" className="space-y-6">
-          <div className="flex justify-end gap-2 flex-wrap">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <ScanFiche
               bandeId={detail.id}
               bandeStartDate={detail.dateDeDepart}
@@ -1297,11 +1304,11 @@ const onObservationSubmit = async (
                 queryClient.invalidateQueries({ queryKey: ["observations", detail.id] });
               }}
             />
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => exportBandePDF(detail, depenses || [], ventes || [], chargesFixes, mortaliteItems, peseesItems, consResp)}>
-              <Download className="h-4 w-4" /> PDF
+            <Button variant="outline" size="sm" className="w-full gap-2 sm:w-auto" onClick={() => exportBandePDF(detail, depenses || [], ventes || [], chargesFixes, mortaliteItems, peseesItems, consResp)}>
+              <Download className="h-4 w-4 shrink-0" /> PDF
             </Button>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => exportBandeExcel(detail, depenses || [], ventes || [], chargesFixes)}>
-              <Download className="h-4 w-4" /> Excel
+            <Button variant="outline" size="sm" className="w-full gap-2 sm:w-auto" onClick={() => exportBandeExcel(detail, depenses || [], ventes || [], chargesFixes)}>
+              <Download className="h-4 w-4 shrink-0" /> Excel
             </Button>
           </div>
 
@@ -1401,9 +1408,9 @@ const onObservationSubmit = async (
             const total = pieData.reduce((s, d) => s + d.value, 0);
             return (
               <Card>
-                <CardHeader><CardTitle className="text-xl font-serif">Répartition des coûts</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-lg font-serif sm:text-xl">Répartition des coûts</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6 items-center">
+                  <div className="grid gap-6 items-center md:grid-cols-2">
                     <ResponsiveContainer width="100%" height={280}>
                       <PieChart>
                         <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={110} dataKey="value" paddingAngle={2} label={({ percent }) => `${(percent * 100).toFixed(0)}%`} labelLine={false}>
@@ -1435,9 +1442,9 @@ const onObservationSubmit = async (
 
         <TabsContent value="depenses">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xl font-serif">Dépenses de Production</CardTitle>
-              {!isReadOnly && <Button size="sm" className="gap-2" onClick={() => { setDialogType("depense"); setIsDialogOpen(true); }}><Plus className="w-4 h-4" /> Ajouter</Button>}
+            <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between sm:pb-2">
+              <CardTitle className="text-lg font-serif sm:text-xl">Dépenses de Production</CardTitle>
+              {!isReadOnly && <Button size="sm" className="w-full gap-2 sm:w-auto" onClick={() => { setDialogType("depense"); setIsDialogOpen(true); }}><Plus className="w-4 h-4 shrink-0" /> Ajouter</Button>}
             </CardHeader>
             <CardContent className="p-0">
               <DepensesGroupedTable
@@ -1452,9 +1459,9 @@ const onObservationSubmit = async (
 
         <TabsContent value="ventes" className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xl font-serif">Ventes de Poulets</CardTitle>
-              {!isReadOnly && <Button size="sm" className="gap-2" onClick={() => { setDialogType("vente"); setIsDialogOpen(true); }}><Plus className="w-4 h-4" /> Vendre</Button>}
+            <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between sm:pb-2">
+              <CardTitle className="text-lg font-serif sm:text-xl">Ventes de Poulets</CardTitle>
+              {!isReadOnly && <Button size="sm" className="w-full gap-2 sm:w-auto" onClick={() => { setDialogType("vente"); setIsDialogOpen(true); }}><Plus className="w-4 h-4 shrink-0" /> Vendre</Button>}
             </CardHeader>
             <CardContent className="p-0">
               <VentesGroupedTable
@@ -1467,9 +1474,9 @@ const onObservationSubmit = async (
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xl font-serif">Frais de Vente</CardTitle>
-              {!isReadOnly && <Button size="sm" variant="outline" className="gap-2" onClick={() => { setDialogType("depenseVente"); setIsDialogOpen(true); }}><Plus className="w-4 h-4" /> Ajouter frais</Button>}
+            <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between sm:pb-2">
+              <CardTitle className="text-lg font-serif sm:text-xl">Frais de Vente</CardTitle>
+              {!isReadOnly && <Button size="sm" variant="outline" className="w-full gap-2 sm:w-auto" onClick={() => { setDialogType("depenseVente"); setIsDialogOpen(true); }}><Plus className="w-4 h-4 shrink-0" /> Ajouter frais</Button>}
             </CardHeader>
             <CardContent>
               <div className="border rounded-md overflow-hidden">
@@ -1505,7 +1512,7 @@ const onObservationSubmit = async (
           {mortaliteItems.length > 0 && (
             <>
               <Card>
-                <CardHeader><CardTitle className="text-xl font-serif">Courbe de mortalité</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-lg font-serif sm:text-xl">Courbe de mortalité</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
                     <ComposedChart data={mortaliteItems.map((m: any) => ({ jour: `J${m.ageJours}`, deces: m.decesJour, cumules: m.decesCumules, taux: m.tauxMortalite }))}>
@@ -1524,9 +1531,9 @@ const onObservationSubmit = async (
 
               {mortaliteParPhase.length > 0 && (
                 <Card>
-                  <CardHeader><CardTitle className="text-xl font-serif">Analyse par phase</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-lg font-serif sm:text-xl">Analyse par phase</CardTitle></CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
                       {mortaliteParPhase.map(phase => {
                         const taux = detail.sujetsDepart > 0 ? ((phase.totalDeces / detail.sujetsDepart) * 100).toFixed(1) : "0";
                         return (
@@ -1546,9 +1553,9 @@ const onObservationSubmit = async (
           )}
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xl font-serif flex items-center gap-2"><Skull className="h-5 w-5" /> Suivi de la mortalité</CardTitle>
-              {!isReadOnly && <Button size="sm" className="gap-2" onClick={() => openDialog("mortalite")}><Plus className="w-4 h-4" /> Ajouter</Button>}
+            <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between sm:pb-2">
+              <CardTitle className="flex min-w-0 flex-wrap items-center gap-2 text-lg font-serif sm:text-xl"><Skull className="h-5 w-5 shrink-0" /> Suivi de la mortalité</CardTitle>
+              {!isReadOnly && <Button size="sm" className="w-full gap-2 sm:w-auto" onClick={() => openDialog("mortalite")}><Plus className="w-4 h-4 shrink-0" /> Ajouter</Button>}
             </CardHeader>
             <CardContent>
               <div className="border rounded-md overflow-hidden">
@@ -1603,7 +1610,7 @@ const onObservationSubmit = async (
         <TabsContent value="pesees" className="space-y-6">
           {(peseesItems.length > 0 || refPoids.length > 0) && (
             <Card>
-              <CardHeader><CardTitle className="text-xl font-serif">Courbe de croissance (vs référence COBB 500)</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-lg font-serif sm:text-xl">Courbe de croissance (vs référence COBB 500)</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={(() => {
@@ -1636,9 +1643,9 @@ const onObservationSubmit = async (
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xl font-serif flex items-center gap-2"><Scale className="h-5 w-5" /> Pesées</CardTitle>
-                {!isReadOnly && <Button size="sm" className="gap-2" onClick={() => openDialog("pesee")}><Plus className="w-4 h-4" /> Ajouter</Button>}
+              <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between sm:pb-2">
+                <CardTitle className="flex min-w-0 flex-wrap items-center gap-2 text-lg font-serif sm:text-xl"><Scale className="h-5 w-5 shrink-0" /> Pesées</CardTitle>
+                {!isReadOnly && <Button size="sm" className="w-full gap-2 sm:w-auto" onClick={() => openDialog("pesee")}><Plus className="w-4 h-4 shrink-0" /> Ajouter</Button>}
               </CardHeader>
               <CardContent>
                 <div className="border rounded-md overflow-hidden">
@@ -1689,12 +1696,12 @@ const onObservationSubmit = async (
 
             <div className="space-y-6">
               <Card className="shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xl font-serif flex items-center gap-2"><Wheat className="h-5 w-5" /> Consommation aliment & IC</CardTitle>
-                  {!isReadOnly && <Button size="sm" className="gap-2" onClick={() => openDialog("consommation")}><Plus className="w-4 h-4" /> Ajouter</Button>}
+                <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between sm:pb-2">
+                  <CardTitle className="flex min-w-0 flex-wrap items-center gap-2 text-lg font-serif sm:text-xl"><Wheat className="h-5 w-5 shrink-0" /> Consommation aliment & IC</CardTitle>
+                  {!isReadOnly && <Button size="sm" className="w-full gap-2 sm:w-auto" onClick={() => openDialog("consommation")}><Plus className="w-4 h-4 shrink-0" /> Ajouter</Button>}
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+                  <div className="grid gap-3 rounded-lg bg-muted/30 p-4 sm:grid-cols-3">
                     <div>
                       <span className="text-muted-foreground text-xs block">Total aliment</span>
                       <span className="font-bold text-lg">{consResp.totalAlimentKg as number || 0} kg</span>
@@ -1722,7 +1729,7 @@ const onObservationSubmit = async (
                   {icParPhase.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-sm font-semibold mb-2">IC par phase</h4>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid gap-2 sm:grid-cols-2">
                         {icParPhase.map(phase => (
                           <div key={phase.label} className="p-3 rounded-lg border text-sm" style={{ borderLeftColor: phase.color, borderLeftWidth: 3 }}>
                             <div className="font-medium">{phase.label}</div>
@@ -1782,9 +1789,9 @@ const onObservationSubmit = async (
 
         <TabsContent value="vaccinations">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xl font-serif flex items-center gap-2"><Syringe className="h-5 w-5" /> Calendrier de vaccination</CardTitle>
-              {!isReadOnly && <Button size="sm" className="gap-2" onClick={() => openDialog("vaccin")}><Plus className="w-4 h-4" /> Ajouter vaccin</Button>}
+            <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between sm:pb-2">
+              <CardTitle className="flex min-w-0 flex-wrap items-center gap-2 text-lg font-serif sm:text-xl"><Syringe className="h-5 w-5 shrink-0" /> Calendrier de vaccination</CardTitle>
+              {!isReadOnly && <Button size="sm" className="w-full gap-2 sm:w-auto" onClick={() => openDialog("vaccin")}><Plus className="w-4 h-4 shrink-0" /> Ajouter vaccin</Button>}
             </CardHeader>
             <CardContent>
               <div className="border rounded-md overflow-hidden">
@@ -1855,7 +1862,7 @@ const onObservationSubmit = async (
         <TabsContent value="eau" className="space-y-6">
           {eauItems.length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-xl font-serif">Courbe de consommation d'eau</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-lg font-serif sm:text-xl">Courbe de consommation d'eau</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
                   <ComposedChart data={eauItems.map((e: any) => ({ jour: `J${e.ageJours}`, litres: e.quantiteLitres }))}>
@@ -1872,13 +1879,13 @@ const onObservationSubmit = async (
           )}
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xl font-serif flex items-center gap-2"><Droplets className="h-5 w-5" /> Consommation d'eau</CardTitle>
-              {!isReadOnly && <Button size="sm" className="gap-2" onClick={() => openDialog("eau")}><Plus className="w-4 h-4" /> Ajouter</Button>}
+            <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between sm:pb-2">
+              <CardTitle className="flex min-w-0 flex-wrap items-center gap-2 text-lg font-serif sm:text-xl"><Droplets className="h-5 w-5 shrink-0" /> Consommation d'eau</CardTitle>
+              {!isReadOnly && <Button size="sm" className="w-full gap-2 sm:w-auto" onClick={() => openDialog("eau")}><Plus className="w-4 h-4 shrink-0" /> Ajouter</Button>}
             </CardHeader>
             <CardContent>
               {eauItems.length > 0 && (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg mb-4">
+                <div className="mb-4 grid gap-3 rounded-lg bg-muted/30 p-4 sm:grid-cols-2">
                   <div>
                     <span className="text-muted-foreground text-xs block">Total eau</span>
                     <span className="font-bold text-lg">{eauItems.reduce((s: number, e: any) => s + e.quantiteLitres, 0).toFixed(1)} L</span>
@@ -1930,9 +1937,9 @@ const onObservationSubmit = async (
 
         <TabsContent value="traitements">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xl font-serif flex items-center gap-2"><Pill className="h-5 w-5" /> Journal des traitements</CardTitle>
-              {!isReadOnly && <Button size="sm" className="gap-2" onClick={() => openDialog("traitement")}><Plus className="w-4 h-4" /> Ajouter</Button>}
+            <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between sm:pb-2">
+              <CardTitle className="flex min-w-0 flex-wrap items-center gap-2 text-lg font-serif sm:text-xl"><Pill className="h-5 w-5 shrink-0" /> Journal des traitements</CardTitle>
+              {!isReadOnly && <Button size="sm" className="w-full gap-2 sm:w-auto" onClick={() => openDialog("traitement")}><Plus className="w-4 h-4 shrink-0" /> Ajouter</Button>}
             </CardHeader>
             <CardContent>
               <div className="border rounded-md overflow-hidden">
@@ -1985,9 +1992,9 @@ const onObservationSubmit = async (
 
         <TabsContent value="journal">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xl font-serif flex items-center gap-2"><BookOpen className="h-5 w-5" /> Journal d'observations</CardTitle>
-              {!isReadOnly && <Button size="sm" className="gap-2" onClick={() => openDialog("observation")}><Plus className="w-4 h-4" /> Ajouter</Button>}
+            <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between sm:pb-2">
+              <CardTitle className="flex min-w-0 flex-wrap items-center gap-2 text-lg font-serif sm:text-xl"><BookOpen className="h-5 w-5 shrink-0" /> Journal d'observations</CardTitle>
+              {!isReadOnly && <Button size="sm" className="w-full gap-2 sm:w-auto" onClick={() => openDialog("observation")}><Plus className="w-4 h-4 shrink-0" /> Ajouter</Button>}
             </CardHeader>
             <CardContent>
               {observationItems.length === 0 ? (
@@ -1995,13 +2002,13 @@ const onObservationSubmit = async (
               ) : (
                 <div className="space-y-3">
                   {observationItems.map((o: any) => (
-                    <div key={o.id} className="p-4 border rounded-lg flex justify-between items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                    <div key={o.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
                           <span className="text-xs font-medium bg-muted px-2 py-0.5 rounded">J{o.ageJours}</span>
                           <span className="text-xs text-muted-foreground">{o.date}</span>
                         </div>
-                        <p className="text-sm">{o.contenu}</p>
+                        <p className="break-words text-sm">{o.contenu}</p>
                       </div>
                       {!isReadOnly && (
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={async () => {

@@ -245,11 +245,11 @@ export default function ScanFiche({ bandeId, bandeStartDate, onDataSaved }: Scan
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Camera className="h-4 w-4" /> Scanner fiche de suivi
+        <Button variant="outline" className="w-full gap-2 sm:w-auto">
+          <Camera className="h-4 w-4 shrink-0" /> Scanner fiche de suivi
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl sm:max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="font-serif">Scanner une fiche de suivi</DialogTitle>
         </DialogHeader>
@@ -260,11 +260,11 @@ export default function ScanFiche({ bandeId, bandeStartDate, onDataSaved }: Scan
               Prenez en photo ou importez l'image de la fiche de suivi hebdomadaire remplie par le fermier. 
               L'IA va lire les données et les pré-remplir pour validation avant enregistrement.
             </p>
-            <div className="flex flex-col items-center gap-4 p-8 border-2 border-dashed rounded-lg">
+            <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed p-5 text-center sm:p-8">
               <Camera className="h-12 w-12 text-muted-foreground" />
-              <div className="flex gap-3">
-                <Button onClick={() => fileRef.current?.click()} className="gap-2">
-                  <Upload className="h-4 w-4" /> Choisir une image
+              <div className="flex w-full gap-3 sm:w-auto">
+                <Button onClick={() => fileRef.current?.click()} className="w-full gap-2 sm:w-auto">
+                  <Upload className="h-4 w-4 shrink-0" /> Choisir une image
                 </Button>
               </div>
               <input
@@ -286,17 +286,17 @@ export default function ScanFiche({ bandeId, bandeStartDate, onDataSaved }: Scan
         )}
 
         {scanning && (
-          <div className="flex flex-col items-center gap-4 p-8">
+          <div className="flex flex-col items-center gap-4 p-5 text-center sm:p-8">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <p className="text-muted-foreground">Analyse de la fiche en cours...</p>
-            {preview && <img src={preview} alt="Fiche" className="max-h-48 rounded border" />}
+            {preview && <img src={preview} alt="Fiche" className="max-h-48 max-w-full rounded border object-contain" />}
           </div>
         )}
 
         {extracted && editData.length > 0 && (
           <div className="space-y-4">
-            <div className="flex gap-4">
-              {preview && <img src={preview} alt="Fiche" className="max-h-32 rounded border" />}
+            <div className="flex flex-col gap-4 sm:flex-row">
+              {preview && <img src={preview} alt="Fiche" className="max-h-48 max-w-full rounded border object-contain sm:max-h-32" />}
               <div className="space-y-1 text-sm">
                 {extracted.semaine != null && <p>Semaine N° : <strong>{extracted.semaine}</strong></p>}
                 {extracted.periodeDu && <p>Période : <strong>{extracted.periodeDu}</strong> au <strong>{extracted.periodeAu}</strong></p>}
@@ -306,7 +306,6 @@ export default function ScanFiche({ bandeId, bandeStartDate, onDataSaved }: Scan
 
             <p className="text-sm font-medium">Vérifiez et corrigez les données avant de les enregistrer :</p>
             <p className="text-xs text-muted-foreground">Le poids moyen sauvegardé sera calculé automatiquement : (min + max) / 2</p>
-            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -396,7 +395,6 @@ export default function ScanFiche({ bandeId, bandeStartDate, onDataSaved }: Scan
                 })}
               </TableBody>
             </Table>
-            </div>
 
             {error && (
               <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded text-sm dark:bg-red-900/20">
@@ -406,12 +404,12 @@ export default function ScanFiche({ bandeId, bandeStartDate, onDataSaved }: Scan
 
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="outline" className="gap-2">
-                  <X className="h-4 w-4" /> Annuler
+                <Button variant="outline" className="w-full gap-2 sm:w-auto">
+                  <X className="h-4 w-4 shrink-0" /> Annuler
                 </Button>
               </DialogClose>
-              <Button onClick={handleSave} disabled={saving} className="gap-2">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              <Button onClick={handleSave} disabled={saving} className="w-full gap-2 sm:w-auto">
+                {saving ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Check className="h-4 w-4 shrink-0" />}
                 {saving ? "Enregistrement..." : "Enregistrer les données"}
               </Button>
             </DialogFooter>
