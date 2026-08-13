@@ -1,3 +1,5 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 import express, { type Express } from "express";
 import cors from "cors";
@@ -75,5 +77,33 @@ app.use(
 );
 
 app.use("/api", router);
+
+if (process.env.NODE_ENV === "production") {
+  const currentDir = path.dirname(
+    fileURLToPath(import.meta.url),
+  );
+
+  const webDistPath = path.resolve(
+    currentDir,
+    "../../web/dist",
+  );
+
+  app.use(express.static(webDistPath));
+
+  app.use((req, res, next) => {
+    if (
+      req.method !== "GET" ||
+      req.originalUrl === "/api" ||
+      req.originalUrl.startsWith("/api/")
+    ) {
+      next();
+      return;
+    }
+
+    res.sendFile("index.html", {
+      root: webDistPath,
+    });
+  });
+}
 
 export default app;

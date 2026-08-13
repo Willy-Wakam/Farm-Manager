@@ -71,12 +71,32 @@ async function seedParametres() {
  * Le mot de passe doit être changé dès la première connexion.
  */
 async function seedAdminUser() {
-  const existingUsers = await db.select().from(usersTable);
+  const existingUsers = await db
+    .select()
+    .from(usersTable);
+
   if (existingUsers.length > 0) return;
 
-  const username = process.env.ADMIN_USERNAME || "admin";
-  const password = process.env.ADMIN_PASSWORD || "admin";
-  const nom = process.env.ADMIN_NOM || "Administrateur";
+  const isProduction =
+    process.env.NODE_ENV === "production";
+
+  const username =
+    process.env.ADMIN_USERNAME ||
+    (isProduction ? undefined : "admin");
+
+  const password =
+    process.env.ADMIN_PASSWORD ||
+    (isProduction ? undefined : "admin");
+
+  const nom =
+    process.env.ADMIN_NOM ||
+    "Administrateur";
+
+  if (!username || !password) {
+    throw new Error(
+      "ADMIN_USERNAME et ADMIN_PASSWORD sont obligatoires pour initialiser une base vide en production.",
+    );
+  }
 
   await db.insert(usersTable).values({
     username,
@@ -85,13 +105,16 @@ async function seedAdminUser() {
     role: "admin",
   });
 
-  if (!process.env.ADMIN_PASSWORD) {
+  if (isProduction) {
+    logger.info(
+      { username },
+      "Compte administrateur initial créé",
+    );
+  } else if (!process.env.ADMIN_PASSWORD) {
     logger.warn(
       { username },
-      "Compte administrateur créé avec le mot de passe par défaut. Changez-le immédiatement, ou définissez ADMIN_PASSWORD avant le premier démarrage.",
+      "Compte administrateur de développement créé avec le mot de passe par défaut.",
     );
-  } else {
-    logger.info({ username }, "Compte administrateur créé");
   }
 }
 
