@@ -3,17 +3,13 @@ export const MAX_RETRY_COUNT = 3;
 type OutboxStatus = PendingOperation["status"];
 
 function isRetryableError(operation: PendingOperation) {
-  return (
-    operation.status === "error" &&
-    operation.retryCount < MAX_RETRY_COUNT
-  );
+  return operation.status === "error" && operation.retryCount < MAX_RETRY_COUNT;
 }
 
 function isFinalFailure(operation: PendingOperation) {
   return (
     operation.status === "failed" ||
-    (operation.status === "error" &&
-      operation.retryCount >= MAX_RETRY_COUNT)
+    (operation.status === "error" && operation.retryCount >= MAX_RETRY_COUNT)
   );
 }
 
@@ -91,10 +87,7 @@ export async function getFailedOperations() {
  * Return all operations waiting to be synchronized.
  */
 export async function getPendingOperations() {
-  return offlineDb.outbox
-    .where("status")
-    .equals("pending")
-    .sortBy("createdAt");
+  return offlineDb.outbox.where("status").equals("pending").sortBy("createdAt");
 }
 
 /**
@@ -109,6 +102,10 @@ export async function markAsSyncing(id: string) {
 /**
  * Mark synchronization as failed.
  */
+function getErrorMessage(error?: unknown) {
+  return error instanceof Error ? error.message : String(error ?? "");
+}
+
 export async function markAsError(id: string, error?: unknown) {
   const operation = await offlineDb.outbox.get(id);
 
@@ -120,25 +117,44 @@ export async function markAsError(id: string, error?: unknown) {
   }
 
   if (operation.status === "failed") {
-    return;
+    return operation;
   }
 
-  const retryCount = Math.min(
-    operation.retryCount + 1,
-    MAX_RETRY_COUNT,
-  );
+  const retryCount = Math.min(operation.retryCount + 1, MAX_RETRY_COUNT);
   const status: OutboxStatus =
     retryCount >= MAX_RETRY_COUNT ? "failed" : "error";
-  const lastError =
-    error instanceof Error ? error.message : String(error ?? "");
+  const lastError = getErrorMessage(error);
 
   await offlineDb.outbox.update(id, {
     status,
     retryCount,
     lastError: lastError || undefined,
-    failedAt:
-      status === "failed" ? new Date().toISOString() : undefined,
+    failedAt: status === "failed" ? new Date().toISOString() : undefined,
   });
+
+  return offlineDb.outbox.get(id);
+}
+
+export async function markAsFailed(id: string, error?: unknown) {
+  const operation = await offlineDb.outbox.get(id);
+
+  if (!operation) {
+    console.warn(
+      `[outbox] Impossible de marquer ${id} en échec final : opération introuvable.`,
+    );
+    return undefined;
+  }
+
+  const lastError = getErrorMessage(error);
+
+  await offlineDb.outbox.update(id, {
+    status: "failed",
+    retryCount: Math.max(operation.retryCount, MAX_RETRY_COUNT),
+    lastError: lastError || undefined,
+    failedAt: operation.failedAt ?? new Date().toISOString(),
+  });
+
+  return offlineDb.outbox.get(id);
 }
 
 /**
@@ -171,9 +187,7 @@ export async function removePendingCreateByEntityId(
   );
 
   if (!operation) {
-    console.warn(
-      "[outbox-cancel] aucun CREATE correspondant trouvé",
-    );
+    console.warn("[outbox-cancel] aucun CREATE correspondant trouvé");
     return false;
   }
 
@@ -181,9 +195,7 @@ export async function removePendingCreateByEntityId(
 
   const remaining = await offlineDb.outbox.toArray();
 
-  return !remaining.some(
-    (op) => op.id === operation.id,
-  );
+  return !remaining.some((op) => op.id === operation.id);
 }
 
 export async function getOutboxOperation(id: string) {
@@ -194,10 +206,7 @@ export async function getOutboxOperation(id: string) {
  * Number of operations still waiting for synchronization.
  */
 export async function getPendingCount() {
-  return offlineDb.outbox
-    .where("status")
-    .equals("pending")
-    .count();
+  return offlineDb.outbox.where("status").equals("pending").count();
 }
 
 export async function resetInterruptedOperations() {

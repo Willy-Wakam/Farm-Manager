@@ -3,96 +3,147 @@ import {
   getPendingOperations,
   markAsSyncing,
   markAsError,
+  markAsFailed,
   removeFromOutbox,
   resetInterruptedOperations,
   recoverRetryableOperations,
-  getOutboxOperation,
 } from "./outbox";
 
+type SyncStatus = "offline" | "api-unavailable" | "in-progress" | "completed";
+
+export interface SyncOutboxResult {
+  status: SyncStatus;
+  successCount: number;
+  temporaryErrorCount: number;
+  finalErrorCount: number;
+  skippedCount: number;
+}
+
+class PermanentSyncError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PermanentSyncError";
+  }
+}
 
 let syncInProgress = false;
 
-export async function syncOutbox() {
+function emptySyncResult(status: SyncStatus): SyncOutboxResult {
+  return {
+    status,
+    successCount: 0,
+    temporaryErrorCount: 0,
+    finalErrorCount: 0,
+    skippedCount: 0,
+  };
+}
+
+function getOperationKey(operation: { entity: string; entityId: string }) {
+  return `${operation.entity}:${operation.entityId}`;
+}
+
+function isPermanentSyncError(error: unknown) {
+  return error instanceof PermanentSyncError;
+}
+
+function isPermanentHttpStatus(status: number) {
+  return [400, 404, 409, 422].includes(status);
+}
+
+function throwSyncHttpError(response: Response, message: string): never {
+  const errorMessage = `${message}: HTTP ${response.status}`;
+
+  if (isPermanentHttpStatus(response.status)) {
+    throw new PermanentSyncError(errorMessage);
+  }
+
+  throw new Error(errorMessage);
+}
+
+export async function syncOutbox(): Promise<SyncOutboxResult> {
   if (!isOnline()) {
     console.log("[sync] Hors ligne — synchronisation annulée.");
-    return;
-    }
+    return emptySyncResult("offline");
+  }
 
-    const apiAvailable = await isApiAvailable();
+  const apiAvailable = await isApiAvailable();
 
-    if (!apiAvailable) {
+  if (!apiAvailable) {
     console.log(
-        "[sync] Réseau disponible mais API inaccessible — synchronisation reportée.",
+      "[sync] Réseau disponible mais API inaccessible — synchronisation reportée.",
     );
-    return;
-}
+    return emptySyncResult("api-unavailable");
+  }
 
   if (syncInProgress) {
     console.log("[sync] Synchronisation déjà en cours.");
-    return;
+    return emptySyncResult("in-progress");
   }
 
   syncInProgress = true;
+  const result = emptySyncResult("completed");
+  const blockedOperationKeys = new Set<string>();
 
   try {
     await resetInterruptedOperations();
     const recoveredCount = await recoverRetryableOperations();
 
     if (recoveredCount > 0) {
-        console.log(
-            `[sync] ${recoveredCount} opération(s) récupérée(s) pour une nouvelle tentative.`,
-        );
+      console.log(
+        `[sync] ${recoveredCount} opération(s) récupérée(s) pour une nouvelle tentative.`,
+      );
     }
 
     const operations = await getPendingOperations();
 
-    console.log(
-      `[sync] ${operations.length} opération(s) à synchroniser.`,
-    );
+    console.log(`[sync] ${operations.length} opération(s) à synchroniser.`);
 
     for (const operation of operations) {
+      const operationKey = getOperationKey(operation);
+
+      if (blockedOperationKeys.has(operationKey)) {
+        result.skippedCount += 1;
+        continue;
+      }
+
       try {
         await markAsSyncing(operation.id);
 
         await sendOperationToServer(operation);
 
         await removeFromOutbox(operation.id);
+        result.successCount += 1;
 
-        console.log(
-          `[sync] Opération ${operation.id} synchronisée.`,
-        );
+        console.log(`[sync] Opération ${operation.id} synchronisée.`);
       } catch (error) {
-            console.error(
-                `[sync] Échec de l'opération ${operation.id}`,
-                error,
-            );
+        console.error(`[sync] Échec de l'opération ${operation.id}`, error);
 
-            await markAsError(operation.id, error);
+        const failedOperation = isPermanentSyncError(error)
+          ? await markAsFailed(operation.id, error)
+          : await markAsError(operation.id, error);
 
-            const failedOperation =
-                await getOutboxOperation(operation.id);
-
-            console.log(
-                "[sync] État après échec:",
-                failedOperation,
-            );
-
-            break;
+        if (failedOperation?.status === "failed") {
+          result.finalErrorCount += 1;
+        } else {
+          result.temporaryErrorCount += 1;
         }
+
+        blockedOperationKeys.add(operationKey);
+      }
     }
+
+    return result;
   } finally {
     syncInProgress = false;
   }
 }
 
-async function syncObservation(
-  operation: {
-    entity: string;
-    operation: "CREATE" | "UPDATE" | "DELETE";
-    entityId: string;
-    payload: unknown;
-  },
-) {
+async function syncObservation(operation: {
+  entity: string;
+  operation: "CREATE" | "UPDATE" | "DELETE";
+  entityId: string;
+  payload: unknown;
+}) {
   const payload = operation.payload as {
     bandeId: number;
     data?: Record<string, unknown>;
@@ -115,9 +166,7 @@ async function syncObservation(
     );
 
     if (!response.ok) {
-      throw new Error(
-        `Erreur synchronisation observation CREATE: HTTP ${response.status}`,
-      );
+      throwSyncHttpError(response, "Erreur synchronisation observation CREATE");
     }
 
     return response.json();
@@ -133,15 +182,13 @@ async function syncObservation(
     );
 
     if (!response.ok) {
-      throw new Error(
-        `Erreur synchronisation observation DELETE: HTTP ${response.status}`,
-      );
+      throwSyncHttpError(response, "Erreur synchronisation observation DELETE");
     }
 
     return response.json();
   }
 
-  throw new Error(
+  throw new PermanentSyncError(
     `Opération observation non supportée: ${operation.operation}`,
   );
 }
@@ -155,12 +202,12 @@ async function sendOperationToServer(operation: {
   switch (operation.entity) {
     case "batiment-item":
       return syncBatimentItem(operation);
-    
+
     case "observation":
       return syncObservation(operation);
 
     default:
-      throw new Error(
+      throw new PermanentSyncError(
         `Type d'entité non supporté: ${operation.entity}`,
       );
   }
@@ -191,7 +238,7 @@ async function syncBatimentItem(operation: {
       break;
 
     default:
-      throw new Error(
+      throw new PermanentSyncError(
         `Opération non supportée: ${operation.operation}`,
       );
   }
@@ -205,16 +252,11 @@ async function syncBatimentItem(operation: {
             "Content-Type": "application/json",
           }
         : undefined,
-    body:
-      method !== "DELETE"
-        ? JSON.stringify(operation.payload)
-        : undefined,
+    body: method !== "DELETE" ? JSON.stringify(operation.payload) : undefined,
   });
 
   if (!response.ok) {
-    throw new Error(
-      `Erreur HTTP ${response.status}: ${response.statusText}`,
-    );
+    throwSyncHttpError(response, `Erreur HTTP ${response.statusText}`);
   }
 
   if (response.status === 204) {
