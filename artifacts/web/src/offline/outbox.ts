@@ -1,10 +1,41 @@
 import { offlineDb, type PendingOperation } from "./db";
 export const MAX_RETRY_COUNT = 3;
+type OutboxStatus = PendingOperation["status"];
+
+function isRetryableError(operation: PendingOperation) {
+  return (
+    operation.status === "error" &&
+    operation.retryCount < MAX_RETRY_COUNT
+  );
+}
+
+function isFinalFailure(operation: PendingOperation) {
+  return (
+    operation.status === "failed" ||
+    (operation.status === "error" &&
+      operation.retryCount >= MAX_RETRY_COUNT)
+  );
+}
+
+async function updateStatus(
+  operation: PendingOperation,
+  status: OutboxStatus,
+  extra: Partial<PendingOperation> = {},
+) {
+  await offlineDb.outbox.update(operation.id, {
+    status,
+    ...extra,
+  });
+}
+
 /**
  * Add a new operation to the offline synchronization queue.
  */
 export async function addToOutbox(
-  operation: Omit<PendingOperation, "id" | "createdAt" | "retryCount" | "status">
+  operation: Omit<
+    PendingOperation,
+    "id" | "createdAt" | "retryCount" | "status"
+  >,
 ) {
   const pendingOperation: PendingOperation = {
     ...operation,
@@ -26,36 +57,33 @@ export async function addToOutbox(
  * - "error": retry only while the maximum retry count is not reached
  */
 export async function recoverRetryableOperations() {
-  const syncingOperations = await offlineDb.outbox
-    .where("status")
-    .equals("syncing")
-    .toArray();
-
-  const failedOperations = await offlineDb.outbox
+  const errorOperations = await offlineDb.outbox
     .where("status")
     .equals("error")
-    .filter((operation) => operation.retryCount < MAX_RETRY_COUNT)
     .toArray();
 
-  const operationsToRecover = [
-    ...syncingOperations,
-    ...failedOperations,
-  ];
+  const retryableOperations = errorOperations.filter(isRetryableError);
+  const finalFailures = errorOperations.filter(isFinalFailure);
 
-  for (const operation of operationsToRecover) {
-    await offlineDb.outbox.update(operation.id, {
-      status: "pending",
+  for (const operation of retryableOperations) {
+    await updateStatus(operation, "pending");
+  }
+
+  for (const operation of finalFailures) {
+    await updateStatus(operation, "failed", {
+      retryCount: Math.max(operation.retryCount, MAX_RETRY_COUNT),
+      failedAt: operation.failedAt ?? new Date().toISOString(),
     });
   }
 
-  return operationsToRecover.length;
+  return retryableOperations.length;
 }
 
 export async function getFailedOperations() {
   return offlineDb.outbox
     .where("status")
-    .equals("error")
-    .filter((operation) => operation.retryCount >= MAX_RETRY_COUNT)
+    .anyOf(["failed", "error"])
+    .filter(isFinalFailure)
     .toArray();
 }
 
@@ -81,7 +109,7 @@ export async function markAsSyncing(id: string) {
 /**
  * Mark synchronization as failed.
  */
-export async function markAsError(id: string) {
+export async function markAsError(id: string, error?: unknown) {
   const operation = await offlineDb.outbox.get(id);
 
   if (!operation) {
@@ -91,19 +119,26 @@ export async function markAsError(id: string) {
     return;
   }
 
-  const retryCount = operation.retryCount + 1;
+  if (operation.status === "failed") {
+    return;
+  }
+
+  const retryCount = Math.min(
+    operation.retryCount + 1,
+    MAX_RETRY_COUNT,
+  );
+  const status: OutboxStatus =
+    retryCount >= MAX_RETRY_COUNT ? "failed" : "error";
+  const lastError =
+    error instanceof Error ? error.message : String(error ?? "");
 
   await offlineDb.outbox.update(id, {
-    status: "error",
+    status,
     retryCount,
+    lastError: lastError || undefined,
+    failedAt:
+      status === "failed" ? new Date().toISOString() : undefined,
   });
-
-  const updatedOperation = await offlineDb.outbox.get(id);
-
-  console.log(
-    `[outbox] Opération ${id} marquée en erreur.`,
-    updatedOperation,
-  );
 }
 
 /**
@@ -128,26 +163,11 @@ export async function removePendingCreateByEntityId(
 ): Promise<boolean> {
   const operations = await offlineDb.outbox.toArray();
 
-  console.log("[outbox-cancel] recherche:", {
-    entity,
-    entityId,
-  });
-
-  console.log(
-    "[outbox-cancel] avant suppression:",
-    operations,
-  );
-
   const operation = operations.find(
     (op) =>
       op.entity === entity &&
       op.operation === "CREATE" &&
       String(op.entityId) === String(entityId),
-  );
-
-  console.log(
-    "[outbox-cancel] opération trouvée:",
-    operation,
   );
 
   if (!operation) {
@@ -160,11 +180,6 @@ export async function removePendingCreateByEntityId(
   await offlineDb.outbox.delete(operation.id);
 
   const remaining = await offlineDb.outbox.toArray();
-
-  console.log(
-    "[outbox-cancel] après suppression:",
-    remaining,
-  );
 
   return !remaining.some(
     (op) => op.id === operation.id,
@@ -188,12 +203,10 @@ export async function getPendingCount() {
 export async function resetInterruptedOperations() {
   const interrupted = await offlineDb.outbox
     .where("status")
-    .anyOf(["syncing", "error"])
+    .equals("syncing")
     .toArray();
 
   for (const operation of interrupted) {
-    await offlineDb.outbox.update(operation.id, {
-      status: "pending",
-    });
+    await updateStatus(operation, "pending");
   }
 }

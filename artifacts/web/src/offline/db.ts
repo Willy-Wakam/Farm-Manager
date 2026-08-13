@@ -1,7 +1,6 @@
 // artifacts/web/src/offline/db.ts
 
 import Dexie, { type Table } from "dexie";
-console.log("🚨 DB BUILD VERSION: v3-queryCache");
 
 export interface PendingOperation {
   id: string;
@@ -11,7 +10,9 @@ export interface PendingOperation {
   payload: unknown;
   createdAt: string;
   retryCount: number;
-  status: "pending" | "syncing" | "error";
+  status: "pending" | "syncing" | "error" | "failed";
+  lastError?: string;
+  failedAt?: string;
 }
 
 export interface OfflineUser {
@@ -80,13 +81,6 @@ export const offlineDb = new FarmManagerDB();
 
 offlineDb
   .open()
-  .then(() => {
-    console.log("✅ IndexedDB ouverte :", offlineDb.name);
-    console.log(
-      "Tables IndexedDB:",
-      offlineDb.tables.map((table) => table.name),
-    );
-  })
   .catch((error) => {
-    console.error("❌ Erreur IndexedDB :", error);
+    console.error("Erreur IndexedDB :", error);
   });
