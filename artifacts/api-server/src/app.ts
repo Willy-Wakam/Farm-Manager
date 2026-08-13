@@ -85,7 +85,7 @@ if (process.env.NODE_ENV === "production") {
 
   const webDistPath = path.resolve(
     currentDir,
-    "../../web/dist",
+    "../../web/dist/public",
   );
 
   app.use(express.static(webDistPath));
