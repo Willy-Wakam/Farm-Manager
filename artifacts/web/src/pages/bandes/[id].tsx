@@ -16,17 +16,9 @@ import {
   useCreateBandeDepenseVente,
   useUpdateBandeDepenseVente,
   useDeleteBandeDepenseVente,
-  useGetBandeMortalite,
-  useCreateBandeMortalite,
-  useDeleteBandeMortalite,
-  useGetBandePesees,
-  useCreateBandePesee,
-  useDeleteBandePesee,
   useGetBandeConsommation,
   useCreateBandeConsommation,
   useDeleteBandeConsommation,
-  useGetBandeVaccinations,
-  useCreateBandeVaccination,
   useUpdateBandeVaccination,
   useUpdateBande,
   useGetMe,
@@ -64,7 +56,7 @@ import { BandeDetail } from "@workspace/api-client-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, PieChart, Pie, Cell, ComposedChart, Area } from "recharts";
 import { CreateBandeDepenseBodyCategorie } from "@workspace/api-client-react";
 import { exportBandePDF, exportBandeExcel } from "@/lib/export";
-import { useConsommationEau, useCreateConsommationEau, useDeleteConsommationEau, useTraitements, useCreateTraitement, useDeleteTraitement, useObservations, useCreateObservation, useDeleteObservation, useReferencePoids } from "@/lib/bande-extras-api";
+import { useBandeMortaliteOffline, useCreateBandeMortaliteOffline, useDeleteBandeMortaliteOffline, useBandePeseesOffline, useCreateBandePeseeOffline, useDeleteBandePeseeOffline, useBandeVaccinationsOffline, useCreateBandeVaccinationOffline, useDeleteBandeVaccinationOffline, useConsommationEau, useCreateConsommationEau, useDeleteConsommationEau, useTraitements, useCreateTraitement, useDeleteTraitement, useObservations, useCreateObservation, useDeleteObservation, useReferencePoids } from "@/lib/bande-extras-api";
 import ScanFiche from "@/components/scan-fiche";
 import DesignationCombobox from "@/components/designation-combobox";
 
@@ -678,10 +670,10 @@ export default function BandeDetailView() {
   const { data: ventes } = useListBandeVentes(bandeId);
   const { data: chargesFixes } = useGetBandeChargesFixe(bandeId);
   const { data: depensesVente } = useListBandeDepensesVente(bandeId);
-  const { data: mortaliteData } = useGetBandeMortalite(bandeId);
-  const { data: peseesData } = useGetBandePesees(bandeId);
+  const { data: mortaliteData } = useBandeMortaliteOffline(bandeId);
+  const { data: peseesData } = useBandePeseesOffline(bandeId);
   const { data: consommationData } = useGetBandeConsommation(bandeId);
-  const { data: vaccinationsData } = useGetBandeVaccinations(bandeId);
+  const { data: vaccinationsData } = useBandeVaccinationsOffline(bandeId);
   const { data: eauData } = useConsommationEau(bandeId);
   const { data: traitementsData } = useTraitements(bandeId);
   const { data: observationsData } = useObservations(bandeId);
@@ -698,13 +690,14 @@ export default function BandeDetailView() {
   const createDepenseVente = useCreateBandeDepenseVente();
   const updateDepenseVente = useUpdateBandeDepenseVente();
   const deleteDepenseVente = useDeleteBandeDepenseVente();
-  const createMortalite = useCreateBandeMortalite();
-  const deleteMortalite = useDeleteBandeMortalite();
-  const createPesee = useCreateBandePesee();
-  const deletePesee = useDeleteBandePesee();
+  const createMortalite = useCreateBandeMortaliteOffline();
+  const deleteMortalite = useDeleteBandeMortaliteOffline();
+  const createPesee = useCreateBandePeseeOffline();
+  const deletePesee = useDeleteBandePeseeOffline();
   const createConsommation = useCreateBandeConsommation();
   const deleteConsommation = useDeleteBandeConsommation();
-  const createVaccination = useCreateBandeVaccination();
+  const createVaccination = useCreateBandeVaccinationOffline();
+  const deleteVaccination = useDeleteBandeVaccinationOffline();
   const updateVaccination = useUpdateBandeVaccination();
   const createEau = useCreateConsommationEau(bandeId);
   const deleteEau = useDeleteConsommationEau(bandeId);
@@ -850,9 +843,11 @@ export default function BandeDetailView() {
 
   const onMortaliteSubmit = async (values: z.infer<typeof mortaliteSchema>) => {
     try {
-      await createMortalite.mutateAsync({ id: bandeId, data: values });
-      queryClient.invalidateQueries({ queryKey: getGetBandeMortaliteQueryKey(bandeId) });
-      invalidateBandeData();
+      const result = await createMortalite.mutateAsync({ id: bandeId, data: values });
+      if (!(result as any)._pendingSync) {
+        queryClient.invalidateQueries({ queryKey: getGetBandeMortaliteQueryKey(bandeId) });
+        invalidateBandeData();
+      }
       toast({ title: "Mortalité enregistrée" });
       setIsDialogOpen(false);
       resetForms();
@@ -861,8 +856,10 @@ export default function BandeDetailView() {
 
   const onPeseeSubmit = async (values: z.infer<typeof peseeSchema>) => {
     try {
-      await createPesee.mutateAsync({ id: bandeId, data: values });
-      queryClient.invalidateQueries({ queryKey: getGetBandePeseesQueryKey(bandeId) });
+      const result = await createPesee.mutateAsync({ id: bandeId, data: values });
+      if (!(result as any)._pendingSync) {
+        queryClient.invalidateQueries({ queryKey: getGetBandePeseesQueryKey(bandeId) });
+      }
       toast({ title: "Pesée enregistrée" });
       setIsDialogOpen(false);
       resetForms();
@@ -881,8 +878,10 @@ export default function BandeDetailView() {
 
   const onVaccinSubmit = async (values: z.infer<typeof vaccinSchema>) => {
     try {
-      await createVaccination.mutateAsync({ id: bandeId, data: values });
-      queryClient.invalidateQueries({ queryKey: getGetBandeVaccinationsQueryKey(bandeId) });
+      const result = await createVaccination.mutateAsync({ id: bandeId, data: values });
+      if (!(result as any)._pendingSync) {
+        queryClient.invalidateQueries({ queryKey: getGetBandeVaccinationsQueryKey(bandeId) });
+      }
       toast({ title: "Vaccin ajouté" });
       setIsDialogOpen(false);
       resetForms();
@@ -1581,9 +1580,11 @@ const onObservationSubmit = async (
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
                                 if (confirm("Supprimer cette entrée ?")) {
                                   try {
-                                    await deleteMortalite.mutateAsync({ id: bandeId, mortaliteId: m.id as number });
-                                    queryClient.invalidateQueries({ queryKey: getGetBandeMortaliteQueryKey(bandeId) });
-                                    invalidateBandeData();
+                                    const result = await deleteMortalite.mutateAsync({ id: bandeId, mortaliteId: m.id as number });
+                                    if (!(result as any).pendingSync && !(result as any).cancelledLocalCreate) {
+                                      queryClient.invalidateQueries({ queryKey: getGetBandeMortaliteQueryKey(bandeId) });
+                                      invalidateBandeData();
+                                    }
                                   } catch { toast({ title: "Erreur de suppression", variant: "destructive" }); }
                                 }
                               }}><Trash2 className="h-4 w-4" /></Button>
@@ -1668,8 +1669,10 @@ const onObservationSubmit = async (
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
                                   if (confirm("Supprimer cette pesée ?")) {
                                     try {
-                                      await deletePesee.mutateAsync({ id: bandeId, peseeId: p.id as number });
-                                      queryClient.invalidateQueries({ queryKey: getGetBandePeseesQueryKey(bandeId) });
+                                      const result = await deletePesee.mutateAsync({ id: bandeId, peseeId: p.id as number });
+                                      if (!(result as any).pendingSync && !(result as any).cancelledLocalCreate) {
+                                        queryClient.invalidateQueries({ queryKey: getGetBandePeseesQueryKey(bandeId) });
+                                      }
                                     } catch { toast({ title: "Erreur de suppression", variant: "destructive" }); }
                                   }
                                 }}><Trash2 className="h-4 w-4" /></Button>
@@ -1820,11 +1823,23 @@ const onObservationSubmit = async (
                           <TableCell>{v.dateFait ? (v.dateFait as string) : "-"}</TableCell>
                           {!isReadOnly && (
                             <TableCell className="text-right">
-                              {v.fait !== "oui" && (
-                                <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => handleMarkVaccinDone(v.id as number)}>
-                                  <Check className="h-3 w-3" /> Fait
-                                </Button>
-                              )}
+                              <div className="flex justify-end gap-1">
+                                {v.fait !== "oui" && (
+                                  <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => handleMarkVaccinDone(v.id as number)}>
+                                    <Check className="h-3 w-3" /> Fait
+                                  </Button>
+                                )}
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
+                                  if (confirm("Supprimer ce vaccin ?")) {
+                                    try {
+                                      const result = await deleteVaccination.mutateAsync({ id: bandeId, vaccId: v.id as number });
+                                      if (!(result as any).pendingSync && !(result as any).cancelledLocalCreate) {
+                                        queryClient.invalidateQueries({ queryKey: getGetBandeVaccinationsQueryKey(bandeId) });
+                                      }
+                                    } catch { toast({ title: "Erreur de suppression", variant: "destructive" }); }
+                                  }
+                                }}><Trash2 className="h-4 w-4" /></Button>
+                              </div>
                             </TableCell>
                           )}
                         </TableRow>

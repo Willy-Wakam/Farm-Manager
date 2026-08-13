@@ -70,6 +70,7 @@ export const mortaliteJournaliereTable = pgTable("mortalite_journaliere", {
   date: date("date").notNull(),
   ageJours: integer("age_jours").notNull(),
   decesJour: integer("deces_jour").notNull().default(0),
+  clientMutationId: uuid("client_mutation_id").unique(),
 });
 
 export const peseesTable = pgTable("pesees", {
@@ -79,6 +80,7 @@ export const peseesTable = pgTable("pesees", {
   ageJours: integer("age_jours").notNull(),
   poidsMoyenG: numeric("poids_moyen_g", { precision: 10, scale: 2 }).notNull(),
   objectifPoidsG: numeric("objectif_poids_g", { precision: 10, scale: 2 }),
+  clientMutationId: uuid("client_mutation_id").unique(),
 });
 
 export const consommationAlimentTable = pgTable("consommation_aliment", {
@@ -97,6 +99,7 @@ export const vaccinationsTable = pgTable("vaccinations", {
   fait: text("fait").notNull().default("non"),
   dateFait: date("date_fait"),
   commentaire: text("commentaire"),
+  clientMutationId: uuid("client_mutation_id").unique(),
 });
 
 export const insertMortaliteSchema = createInsertSchema(mortaliteJournaliereTable).omit({ id: true });
@@ -121,6 +124,7 @@ export const consommationEauTable = pgTable("consommation_eau", {
   date: date("date").notNull(),
   ageJours: integer("age_jours").notNull(),
   quantiteLitres: numeric("quantite_litres", { precision: 10, scale: 2 }).notNull(),
+  clientMutationId: uuid("client_mutation_id").unique(),
 });
 
 export const traitementsTable = pgTable("traitements", {
@@ -132,6 +136,7 @@ export const traitementsTable = pgTable("traitements", {
   type: text("type").notNull().default("traitement"),
   dosage: text("dosage"),
   observations: text("observations"),
+  clientMutationId: uuid("client_mutation_id").unique(),
 });
 
 export const observationsJournalTable = pgTable("observations_journal", {

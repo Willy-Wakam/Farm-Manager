@@ -72,6 +72,14 @@ function throwSyncHttpError(response: Response, message: string): never {
   throw new Error(errorMessage);
 }
 
+const bandeResourcePaths: Record<string, string> = {
+  mortalite: "mortalite",
+  pesee: "pesees",
+  "consommation-eau": "consommation-eau",
+  traitement: "traitements",
+  vaccination: "vaccinations",
+};
+
 function notifyOperationSynced(
   operation: {
     entity: string;
@@ -240,6 +248,77 @@ async function syncObservation(operation: {
   );
 }
 
+async function syncBandeResource(operation: {
+  entity: string;
+  operation: "CREATE" | "UPDATE" | "DELETE";
+  entityId: string;
+  payload: unknown;
+}) {
+  const path = bandeResourcePaths[operation.entity];
+
+  if (!path) {
+    throw new PermanentSyncError(
+      `Type d'entité non supporté: ${operation.entity}`,
+    );
+  }
+
+  const payload = operation.payload as {
+    bandeId: number;
+    data?: Record<string, unknown>;
+    clientMutationId?: string;
+  };
+
+  if (operation.operation === "CREATE") {
+    const clientMutationId = isOfflineCreatePayload(operation.payload)
+      ? operation.payload.clientMutationId
+      : payload.clientMutationId ?? operation.entityId;
+
+    const response = await fetch(`/api/bandes/${payload.bandeId}/${path}`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...payload.data,
+        clientMutationId,
+      }),
+    });
+
+    if (!response.ok) {
+      throwSyncHttpError(
+        response,
+        `Erreur synchronisation ${operation.entity} CREATE`,
+      );
+    }
+
+    return response.json();
+  }
+
+  if (operation.operation === "DELETE") {
+    const response = await fetch(
+      `/api/bandes/${payload.bandeId}/${path}/${operation.entityId}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      throwSyncHttpError(
+        response,
+        `Erreur synchronisation ${operation.entity} DELETE`,
+      );
+    }
+
+    return response.json();
+  }
+
+  throw new PermanentSyncError(
+    `Opération ${operation.entity} non supportée: ${operation.operation}`,
+  );
+}
+
 async function sendOperationToServer(operation: {
   entity: string;
   operation: "CREATE" | "UPDATE" | "DELETE";
@@ -252,6 +331,13 @@ async function sendOperationToServer(operation: {
 
     case "observation":
       return syncObservation(operation);
+
+    case "mortalite":
+    case "pesee":
+    case "consommation-eau":
+    case "traitement":
+    case "vaccination":
+      return syncBandeResource(operation);
 
     default:
       throw new PermanentSyncError(
