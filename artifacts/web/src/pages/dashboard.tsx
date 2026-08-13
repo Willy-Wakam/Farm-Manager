@@ -5,8 +5,6 @@ import { Wallet, Receipt, Construction, Bird, AlertTriangle, Syringe, TrendingUp
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Link } from "wouter";
 import SaisieRapide from "@/components/saisie-rapide";
-import { addToOutbox } from "@/offline/outbox";
-import { syncOutbox } from "@/offline/sync";
 
 export default function Dashboard() {
   const { data: summary, isLoading, error } = useGetDashboardSummary();
@@ -23,25 +21,6 @@ export default function Dashboard() {
   const prochainesVaccinations = (s.prochainesVaccinations as Array<{ bandeNom: string; vaccinNom: string; datePrevue: string; enRetard: boolean }>) || [];
   const previsions = s.previsions as { coutProductionEstime: number; beneficeProbable: number; dureeMoyenneJours: number } | null;
   const totalRembourse = (s.totalRembourse as number) || 0;
-  const testOutbox = async () => {
-    const operation = await addToOutbox({
-      entity: "batiment-item",
-      operation: "CREATE",
-      entityId: crypto.randomUUID(),
-
-      payload: {
-        designation: "Test synchronisation offline",
-        quantite: 2,
-        prixUnitaire: 5000,
-        categorie: "materiaux",
-        date: new Date().toISOString().slice(0, 10),
-        commentaire: "Créé depuis l'outbox",
-      },
-    });
-
-    console.log("Outbox operation:", operation);
-  };
-
 
   return (
     <div className="space-y-8">
@@ -67,15 +46,6 @@ export default function Dashboard() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-        <div>
-          <button onClick={() => testOutbox()}>
-            Test Outbox
-          </button>
-          <button onClick={() => syncOutbox()}>
-            Synchroniser
-          </button>
-        </div>
         <Card className="group hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Caisse disponible</CardTitle>
