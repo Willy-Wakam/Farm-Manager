@@ -13,11 +13,13 @@ import importHistoricalRouter from "./import-historical";
 import ocrFicheRouter from "./ocr-fiche";
 import chantiersRouter from "./chantiers";
 import actifsRouter from "./actifs";
+import { requireAuth } from "./require-auth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use("/auth", authRouter);
+router.use(requireAuth);
 router.use("/financement", financementRouter);
 router.use("/devis", devisRouter);
 router.use("/depenses", depensesRouter);

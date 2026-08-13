@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { getSessionUserId, requireAuth } from "./require-auth";
 
 const router = Router();
 
@@ -47,6 +48,8 @@ router.post("/login", async (req, res) => {
   });
 });
 
+router.use(requireAuth);
+
 router.post("/register", async (req, res) => {
   const { nom, username, password } = req.body;
   if (!nom || !username || !password) {
@@ -86,11 +89,7 @@ router.post("/logout", (req, res) => {
 });
 
 router.get("/me", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Non authentifié" });
-    return;
-  }
+  const userId = getSessionUserId(req)!;
 
   const users = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   const user = users[0];
@@ -109,8 +108,7 @@ router.get("/me", async (req, res) => {
 });
 
 router.get("/users", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) { res.status(401).json({ error: "Non authentifié" }); return; }
+  const userId = getSessionUserId(req)!;
   const currentUser = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!currentUser[0] || currentUser[0].role !== "admin") {
     res.status(403).json({ error: "Accès refusé" });
@@ -129,8 +127,7 @@ router.get("/users", async (req, res) => {
 });
 
 router.put("/users/:id/role", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) { res.status(401).json({ error: "Non authentifié" }); return; }
+  const userId = getSessionUserId(req)!;
   const currentUser = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!currentUser[0] || currentUser[0].role !== "admin") {
     res.status(403).json({ error: "Accès refusé" });
@@ -157,8 +154,7 @@ router.put("/users/:id/role", async (req, res) => {
 });
 
 router.delete("/users/:id", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) { res.status(401).json({ error: "Non authentifié" }); return; }
+  const userId = getSessionUserId(req)!;
   const currentUser = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!currentUser[0] || currentUser[0].role !== "admin") {
     res.status(403).json({ error: "Accès refusé" });
