@@ -542,6 +542,7 @@ router.get("/:id/mortalite", async (req, res) => {
       decesCumules,
       tauxMortalite: Math.round(tauxMortalite * 100) / 100,
       alerteRouge: tauxJour > seuilMortaliteJour,
+      clientMutationId: r.clientMutationId,
     };
   });
   res.json(data);
@@ -549,14 +550,25 @@ router.get("/:id/mortalite", async (req, res) => {
 
 router.post("/:id/mortalite", async (req, res) => {
   const bandeId = parseInt(req.params.id);
-  const { date, ageJours, decesJour } = req.body;
-  const rows = await db.insert(mortaliteJournaliereTable).values({ bandeId, date, ageJours, decesJour: decesJour ?? 0 }).returning();
-  // Recompute from source of truth to avoid drift
-  const sumRows = await db.select({ total: sql<number>`COALESCE(SUM(${mortaliteJournaliereTable.decesJour}), 0)` }).from(mortaliteJournaliereTable).where(eq(mortaliteJournaliereTable.bandeId, bandeId));
-  await db.update(bandesTable).set({ nombreDeces: Number(sumRows[0]?.total ?? 0) }).where(eq(bandesTable.id, bandeId));
-  const r = rows[0];
-  await logFromRequest(req, "Ajout mortalité", `${decesJour} décès - Bande ID: ${bandeId}`);
-  res.status(201).json({ id: r.id, bandeId: r.bandeId, date: r.date, ageJours: r.ageJours, decesJour: r.decesJour });
+  const { date, ageJours, decesJour, clientMutationId } = req.body;
+  const rows = await db.insert(mortaliteJournaliereTable).values({ bandeId, date, ageJours, decesJour: decesJour ?? 0, clientMutationId: clientMutationId ?? null }).onConflictDoNothing({ target: mortaliteJournaliereTable.clientMutationId }).returning();
+  const resultRows = rows.length > 0
+    ? rows
+    : clientMutationId
+      ? await db.select().from(mortaliteJournaliereTable).where(eq(mortaliteJournaliereTable.clientMutationId, clientMutationId))
+      : [];
+  if (resultRows.length === 0) {
+    res.status(409).json({ error: "Impossible de créer la mortalité" });
+    return;
+  }
+  if (rows.length > 0) {
+    // Recompute from source of truth to avoid drift
+    const sumRows = await db.select({ total: sql<number>`COALESCE(SUM(${mortaliteJournaliereTable.decesJour}), 0)` }).from(mortaliteJournaliereTable).where(eq(mortaliteJournaliereTable.bandeId, bandeId));
+    await db.update(bandesTable).set({ nombreDeces: Number(sumRows[0]?.total ?? 0) }).where(eq(bandesTable.id, bandeId));
+    await logFromRequest(req, "Ajout mortalité", `${decesJour} décès - Bande ID: ${bandeId}`);
+  }
+  const r = resultRows[0];
+  res.status(rows.length > 0 ? 201 : 200).json({ id: r.id, bandeId: r.bandeId, date: r.date, ageJours: r.ageJours, decesJour: r.decesJour, clientMutationId: r.clientMutationId });
 });
 
 router.delete("/:id/mortalite/:mortaliteId", async (req, res) => {
@@ -588,22 +600,34 @@ router.get("/:id/pesees", async (req, res) => {
     objectifPoidsG: r.objectifPoidsG ? parseFloat(r.objectifPoidsG) : null,
     ecart: r.objectifPoidsG ? parseFloat(r.poidsMoyenG) - parseFloat(r.objectifPoidsG) : null,
     alertePoids: r.objectifPoidsG ? parseFloat(r.poidsMoyenG) < parseFloat(r.objectifPoidsG) * (seuilPoids / 100) : false,
+    clientMutationId: r.clientMutationId,
   })));
 });
 
 router.post("/:id/pesees", async (req, res) => {
   const bandeId = parseInt(req.params.id);
-  const { date, ageJours, poidsMoyenG, objectifPoidsG } = req.body;
+  const { date, ageJours, poidsMoyenG, objectifPoidsG, clientMutationId } = req.body;
   const rows = await db.insert(peseesTable).values({
     bandeId, date, ageJours,
     poidsMoyenG: String(poidsMoyenG),
     objectifPoidsG: objectifPoidsG ? String(objectifPoidsG) : null,
-  }).returning();
-  const r = rows[0];
-  res.status(201).json({
+    clientMutationId: clientMutationId ?? null,
+  }).onConflictDoNothing({ target: peseesTable.clientMutationId }).returning();
+  const resultRows = rows.length > 0
+    ? rows
+    : clientMutationId
+      ? await db.select().from(peseesTable).where(eq(peseesTable.clientMutationId, clientMutationId))
+      : [];
+  if (resultRows.length === 0) {
+    res.status(409).json({ error: "Impossible de créer la pesée" });
+    return;
+  }
+  const r = resultRows[0];
+  res.status(rows.length > 0 ? 201 : 200).json({
     id: r.id, bandeId: r.bandeId, date: r.date, ageJours: r.ageJours,
     poidsMoyenG: parseFloat(r.poidsMoyenG),
     objectifPoidsG: r.objectifPoidsG ? parseFloat(r.objectifPoidsG) : null,
+    clientMutationId: r.clientMutationId,
   });
 });
 
@@ -679,6 +703,7 @@ router.get("/:id/vaccinations", async (req, res) => {
       id: r.id, bandeId: r.bandeId, jourPrevu: r.jourPrevu, nom: r.nom,
       description: r.description, fait: r.fait, dateFait: r.dateFait,
       commentaire: r.commentaire, datePrevue: datePrevue.toISOString().split("T")[0], enRetard,
+      clientMutationId: r.clientMutationId,
     };
   }));
 });
@@ -700,13 +725,29 @@ router.put("/:id/vaccinations/:vaccId", async (req, res) => {
 
 router.post("/:id/vaccinations", async (req, res) => {
   const bandeId = parseInt(req.params.id);
-  const { jourPrevu, nom, description } = req.body;
-  const rows = await db.insert(vaccinationsTable).values({ bandeId, jourPrevu, nom, description: description || null, fait: "non" }).returning();
-  const r = rows[0];
-  res.status(201).json({
+  const { jourPrevu, nom, description, clientMutationId } = req.body;
+  const rows = await db.insert(vaccinationsTable).values({ bandeId, jourPrevu, nom, description: description || null, fait: "non", clientMutationId: clientMutationId ?? null }).onConflictDoNothing({ target: vaccinationsTable.clientMutationId }).returning();
+  const resultRows = rows.length > 0
+    ? rows
+    : clientMutationId
+      ? await db.select().from(vaccinationsTable).where(eq(vaccinationsTable.clientMutationId, clientMutationId))
+      : [];
+  if (resultRows.length === 0) {
+    res.status(409).json({ error: "Impossible de créer la vaccination" });
+    return;
+  }
+  const r = resultRows[0];
+  res.status(rows.length > 0 ? 201 : 200).json({
     id: r.id, bandeId: r.bandeId, jourPrevu: r.jourPrevu, nom: r.nom,
     description: r.description, fait: r.fait, dateFait: r.dateFait, commentaire: r.commentaire,
+    clientMutationId: r.clientMutationId,
   });
+});
+
+router.delete("/:id/vaccinations/:vaccId", async (req, res) => {
+  const bandeId = parseInt(req.params.id);
+  await db.delete(vaccinationsTable).where(and(eq(vaccinationsTable.id, parseInt(req.params.vaccId)), eq(vaccinationsTable.bandeId, bandeId)));
+  res.json({ success: true });
 });
 
 router.get("/:id/consommation-eau", async (req, res) => {
@@ -715,19 +756,30 @@ router.get("/:id/consommation-eau", async (req, res) => {
   res.json(rows.map(r => ({
     id: r.id, bandeId: r.bandeId, date: r.date, ageJours: r.ageJours,
     quantiteLitres: parseFloat(r.quantiteLitres),
+    clientMutationId: r.clientMutationId,
   })));
 });
 
 router.post("/:id/consommation-eau", async (req, res) => {
   const bandeId = parseInt(req.params.id);
-  const { date, ageJours, quantiteLitres } = req.body;
+  const { date, ageJours, quantiteLitres, clientMutationId } = req.body;
   const rows = await db.insert(consommationEauTable).values({
-    bandeId, date, ageJours, quantiteLitres: String(quantiteLitres),
-  }).returning();
-  const r = rows[0];
-  res.status(201).json({
+    bandeId, date, ageJours, quantiteLitres: String(quantiteLitres), clientMutationId: clientMutationId ?? null,
+  }).onConflictDoNothing({ target: consommationEauTable.clientMutationId }).returning();
+  const resultRows = rows.length > 0
+    ? rows
+    : clientMutationId
+      ? await db.select().from(consommationEauTable).where(eq(consommationEauTable.clientMutationId, clientMutationId))
+      : [];
+  if (resultRows.length === 0) {
+    res.status(409).json({ error: "Impossible de créer la consommation d'eau" });
+    return;
+  }
+  const r = resultRows[0];
+  res.status(rows.length > 0 ? 201 : 200).json({
     id: r.id, bandeId: r.bandeId, date: r.date, ageJours: r.ageJours,
     quantiteLitres: parseFloat(r.quantiteLitres),
+    clientMutationId: r.clientMutationId,
   });
 });
 
@@ -743,20 +795,32 @@ router.get("/:id/traitements", async (req, res) => {
   res.json(rows.map(r => ({
     id: r.id, bandeId: r.bandeId, date: r.date, ageJours: r.ageJours,
     produit: r.produit, type: r.type, dosage: r.dosage, observations: r.observations,
+    clientMutationId: r.clientMutationId,
   })));
 });
 
 router.post("/:id/traitements", async (req, res) => {
   const bandeId = parseInt(req.params.id);
-  const { date, ageJours, produit, type, dosage, observations } = req.body;
+  const { date, ageJours, produit, type, dosage, observations, clientMutationId } = req.body;
   const rows = await db.insert(traitementsTable).values({
     bandeId, date, ageJours, produit, type: type || "traitement",
     dosage: dosage || null, observations: observations || null,
-  }).returning();
-  const r = rows[0];
-  res.status(201).json({
+    clientMutationId: clientMutationId ?? null,
+  }).onConflictDoNothing({ target: traitementsTable.clientMutationId }).returning();
+  const resultRows = rows.length > 0
+    ? rows
+    : clientMutationId
+      ? await db.select().from(traitementsTable).where(eq(traitementsTable.clientMutationId, clientMutationId))
+      : [];
+  if (resultRows.length === 0) {
+    res.status(409).json({ error: "Impossible de créer le traitement" });
+    return;
+  }
+  const r = resultRows[0];
+  res.status(rows.length > 0 ? 201 : 200).json({
     id: r.id, bandeId: r.bandeId, date: r.date, ageJours: r.ageJours,
     produit: r.produit, type: r.type, dosage: r.dosage, observations: r.observations,
+    clientMutationId: r.clientMutationId,
   });
 });
 

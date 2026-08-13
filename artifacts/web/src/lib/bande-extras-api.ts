@@ -1,4 +1,9 @@
 import {
+  getGetBandeMortaliteQueryKey,
+  getGetBandePeseesQueryKey,
+  getGetBandeVaccinationsQueryKey,
+} from "@workspace/api-client-react";
+import {
   addToOutbox,
   buildOfflineCreatePayload,
   removePendingCreateByEntityId,
@@ -12,6 +17,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 const BASE = `${import.meta.env.BASE_URL}api/bandes`;
+type QueryKey = readonly unknown[];
+type ProductionEntity =
+  | "mortalite"
+  | "pesee"
+  | "consommation-eau"
+  | "traitement"
+  | "vaccination";
 
 async function fetchJson(url: string, options?: RequestInit) {
   const res = await fetch(url, { credentials: "include", ...options });
@@ -19,68 +31,90 @@ async function fetchJson(url: string, options?: RequestInit) {
   return res.json();
 }
 
-export function useConsommationEau(bandeId: number) {
-  return useQuery({
-    queryKey: getConsommationEauQueryKey(bandeId),
-    queryFn: () => fetchConsommationEau(bandeId),
+function appendToListCache(
+  qc: ReturnType<typeof useQueryClient>,
+  queryKey: QueryKey,
+  item: unknown,
+) {
+  qc.setQueryData(queryKey, (current: any) => {
+    if (Array.isArray(current)) {
+      return [...current, item];
+    }
+
+    if (current && Array.isArray(current.data)) {
+      return {
+        ...current,
+        data: [...current.data, item],
+      };
+    }
+
+    return current == null ? [item] : current;
   });
 }
 
-export function useCreateConsommationEau(bandeId: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: any) => fetchJson(`${BASE}/${bandeId}/consommation-eau`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["consommation-eau", bandeId] }),
+function removeFromListCache(
+  qc: ReturnType<typeof useQueryClient>,
+  queryKey: QueryKey,
+  itemId: number | string,
+) {
+  qc.setQueryData(queryKey, (current: any) => {
+    const remove = (items: any[]) =>
+      items.filter((item) => String(item.id) !== String(itemId));
+
+    if (Array.isArray(current)) {
+      return remove(current);
+    }
+
+    if (current && Array.isArray(current.data)) {
+      return {
+        ...current,
+        data: remove(current.data),
+      };
+    }
+
+    return current;
   });
 }
 
-export function useDeleteConsommationEau(bandeId: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (eauId: number) => fetchJson(`${BASE}/${bandeId}/consommation-eau/${eauId}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["consommation-eau", bandeId] }),
+function replaceInListCache(
+  qc: ReturnType<typeof useQueryClient>,
+  queryKey: QueryKey,
+  localId: string,
+  serverItem: unknown,
+) {
+  qc.setQueryData(queryKey, (current: any) => {
+    const replace = (items: any[]) =>
+      items.map((item) =>
+        String(item.id) === String(localId) ? serverItem : item,
+      );
+
+    if (Array.isArray(current)) {
+      return replace(current);
+    }
+
+    if (current && Array.isArray(current.data)) {
+      return {
+        ...current,
+        data: replace(current.data),
+      };
+    }
+
+    return current;
   });
 }
 
-export function useTraitements(bandeId: number) {
-  return useQuery({
-    queryKey: getTraitementsQueryKey(bandeId),
-    queryFn: () => fetchTraitements(bandeId),
-  });
-}
-
-export function useCreateTraitement(bandeId: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: any) => fetchJson(`${BASE}/${bandeId}/traitements`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["traitements", bandeId] }),
-  });
-}
-
-export function useDeleteTraitement(bandeId: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (traitId: number) => fetchJson(`${BASE}/${bandeId}/traitements/${traitId}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["traitements", bandeId] }),
-  });
-}
-
-export function useObservations(bandeId: number) {
+function useOutboxCreateReconciliation(
+  entity: ProductionEntity | "observation",
+  bandeId: number,
+  queryKey: QueryKey,
+) {
   const qc = useQueryClient();
 
   useEffect(() => {
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<OutboxOperationSyncedDetail>).detail;
 
-      if (detail.entity !== "observation" || detail.operation !== "CREATE") {
+      if (detail.entity !== entity || detail.operation !== "CREATE") {
         return;
       }
 
@@ -90,12 +124,8 @@ export function useObservations(bandeId: number) {
         return;
       }
 
-      replaceObservationInCache(
-        qc,
-        bandeId,
-        detail.entityId,
-        detail.serverResult,
-      );
+      replaceInListCache(qc, queryKey, detail.entityId, detail.serverResult);
+      void qc.invalidateQueries({ queryKey });
     };
 
     window.addEventListener(OUTBOX_OPERATION_SYNCED_EVENT, handler);
@@ -103,7 +133,430 @@ export function useObservations(bandeId: number) {
     return () => {
       window.removeEventListener(OUTBOX_OPERATION_SYNCED_EVENT, handler);
     };
-  }, [bandeId, qc]);
+  }, [bandeId, entity, qc, queryKey]);
+}
+
+async function createProductionEntry(options: {
+  status: string;
+  qc: ReturnType<typeof useQueryClient>;
+  bandeId: number;
+  queryKey: QueryKey;
+  entity: ProductionEntity;
+  path: string;
+  data: Record<string, unknown>;
+  optimisticExtra?: Record<string, unknown>;
+}) {
+  const { status, qc, bandeId, queryKey, entity, path, data, optimisticExtra } =
+    options;
+
+  if (status === "online") {
+    return fetchJson(`${BASE}/${bandeId}/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  }
+
+  const offlineCreate = buildOfflineCreatePayload(bandeId, data);
+  const localItem = {
+    ...offlineCreate.data,
+    ...optimisticExtra,
+    id: offlineCreate.localEntityId,
+    _offline: true,
+    _pendingSync: true,
+  };
+
+  await addToOutbox({
+    entity,
+    operation: "CREATE",
+    entityId: offlineCreate.localEntityId,
+    payload: offlineCreate,
+  });
+
+  appendToListCache(qc, queryKey, localItem);
+
+  return localItem;
+}
+
+async function deleteProductionEntry(options: {
+  status: string;
+  qc: ReturnType<typeof useQueryClient>;
+  bandeId: number;
+  queryKey: QueryKey;
+  entity: ProductionEntity;
+  path: string;
+  entityId: number | string;
+}) {
+  const { status, qc, bandeId, queryKey, entity, path, entityId } = options;
+
+  if (typeof entityId === "string") {
+    const cancelled = await removePendingCreateByEntityId(entity, entityId);
+
+    if (!cancelled) {
+      throw new Error(`CREATE local introuvable pour ${entityId}`);
+    }
+
+    removeFromListCache(qc, queryKey, entityId);
+
+    return {
+      success: true,
+      cancelledLocalCreate: true,
+    };
+  }
+
+  if (status === "online") {
+    const result = await fetchJson(`${BASE}/${bandeId}/${path}/${entityId}`, {
+      method: "DELETE",
+    });
+
+    removeFromListCache(qc, queryKey, entityId);
+
+    return result;
+  }
+
+  await addToOutbox({
+    entity,
+    operation: "DELETE",
+    entityId: String(entityId),
+    payload: { bandeId },
+  });
+
+  removeFromListCache(qc, queryKey, entityId);
+
+  return {
+    success: true,
+    pendingSync: true,
+  };
+}
+
+export function useCreateBandeMortaliteOffline() {
+  const qc = useQueryClient();
+  const { status } = useAppNetworkStatus();
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      createProductionEntry({
+        status,
+        qc,
+        bandeId: id,
+        queryKey: getGetBandeMortaliteQueryKey(id),
+        entity: "mortalite",
+        path: "mortalite",
+        data,
+        optimisticExtra: {
+          decesCumules: data.decesJour ?? 0,
+          tauxMortalite: 0,
+          alerteRouge: false,
+        },
+      }),
+    onSuccess: (_result, variables) => {
+      if (status === "online") {
+        void qc.invalidateQueries({
+          queryKey: getGetBandeMortaliteQueryKey(variables.id),
+        });
+      }
+    },
+  });
+}
+
+export function useDeleteBandeMortaliteOffline() {
+  const qc = useQueryClient();
+  const { status } = useAppNetworkStatus();
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: ({
+      id,
+      mortaliteId,
+    }: {
+      id: number;
+      mortaliteId: number | string;
+    }) =>
+      deleteProductionEntry({
+        status,
+        qc,
+        bandeId: id,
+        queryKey: getGetBandeMortaliteQueryKey(id),
+        entity: "mortalite",
+        path: "mortalite",
+        entityId: mortaliteId,
+      }),
+  });
+}
+
+export function useBandeMortaliteOffline(bandeId: number) {
+  const queryKey = getGetBandeMortaliteQueryKey(bandeId);
+
+  useOutboxCreateReconciliation("mortalite", bandeId, queryKey);
+
+  return useQuery({
+    queryKey,
+    queryFn: () => fetchJson(`${BASE}/${bandeId}/mortalite`),
+  });
+}
+
+export function useConsommationEau(bandeId: number) {
+  useOutboxCreateReconciliation(
+    "consommation-eau",
+    bandeId,
+    getConsommationEauQueryKey(bandeId),
+  );
+
+  return useQuery({
+    queryKey: getConsommationEauQueryKey(bandeId),
+    queryFn: () => fetchConsommationEau(bandeId),
+  });
+}
+
+export function useCreateConsommationEau(bandeId: number) {
+  const qc = useQueryClient();
+  const { status } = useAppNetworkStatus();
+  const queryKey = getConsommationEauQueryKey(bandeId);
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: (data: Record<string, unknown>) =>
+      createProductionEntry({
+        status,
+        qc,
+        bandeId,
+        queryKey,
+        entity: "consommation-eau",
+        path: "consommation-eau",
+        data,
+      }),
+    onSuccess: () => {
+      if (status === "online") {
+        void qc.invalidateQueries({ queryKey });
+      }
+    },
+  });
+}
+
+export function useDeleteConsommationEau(bandeId: number) {
+  const qc = useQueryClient();
+  const { status } = useAppNetworkStatus();
+  const queryKey = getConsommationEauQueryKey(bandeId);
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: (eauId: number | string) =>
+      deleteProductionEntry({
+        status,
+        qc,
+        bandeId,
+        queryKey,
+        entity: "consommation-eau",
+        path: "consommation-eau",
+        entityId: eauId,
+      }),
+  });
+}
+
+export function useCreateBandePeseeOffline() {
+  const qc = useQueryClient();
+  const { status } = useAppNetworkStatus();
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      createProductionEntry({
+        status,
+        qc,
+        bandeId: id,
+        queryKey: getGetBandePeseesQueryKey(id),
+        entity: "pesee",
+        path: "pesees",
+        data,
+        optimisticExtra: {
+          ecart:
+            typeof data.objectifPoidsG === "number" &&
+            typeof data.poidsMoyenG === "number"
+              ? data.poidsMoyenG - data.objectifPoidsG
+              : null,
+          alertePoids: false,
+        },
+      }),
+    onSuccess: (_result, variables) => {
+      if (status === "online") {
+        void qc.invalidateQueries({
+          queryKey: getGetBandePeseesQueryKey(variables.id),
+        });
+      }
+    },
+  });
+}
+
+export function useDeleteBandePeseeOffline() {
+  const qc = useQueryClient();
+  const { status } = useAppNetworkStatus();
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: ({
+      id,
+      peseeId,
+    }: {
+      id: number;
+      peseeId: number | string;
+    }) =>
+      deleteProductionEntry({
+        status,
+        qc,
+        bandeId: id,
+        queryKey: getGetBandePeseesQueryKey(id),
+        entity: "pesee",
+        path: "pesees",
+        entityId: peseeId,
+      }),
+  });
+}
+
+export function useBandePeseesOffline(bandeId: number) {
+  const queryKey = getGetBandePeseesQueryKey(bandeId);
+
+  useOutboxCreateReconciliation("pesee", bandeId, queryKey);
+
+  return useQuery({
+    queryKey,
+    queryFn: () => fetchJson(`${BASE}/${bandeId}/pesees`),
+  });
+}
+
+export function useCreateBandeVaccinationOffline() {
+  const qc = useQueryClient();
+  const { status } = useAppNetworkStatus();
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      createProductionEntry({
+        status,
+        qc,
+        bandeId: id,
+        queryKey: getGetBandeVaccinationsQueryKey(id),
+        entity: "vaccination",
+        path: "vaccinations",
+        data,
+        optimisticExtra: {
+          fait: "non",
+          dateFait: null,
+          commentaire: null,
+          datePrevue: "",
+          enRetard: false,
+        },
+      }),
+    onSuccess: (_result, variables) => {
+      if (status === "online") {
+        void qc.invalidateQueries({
+          queryKey: getGetBandeVaccinationsQueryKey(variables.id),
+        });
+      }
+    },
+  });
+}
+
+export function useDeleteBandeVaccinationOffline() {
+  const qc = useQueryClient();
+  const { status } = useAppNetworkStatus();
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: ({
+      id,
+      vaccId,
+    }: {
+      id: number;
+      vaccId: number | string;
+    }) =>
+      deleteProductionEntry({
+        status,
+        qc,
+        bandeId: id,
+        queryKey: getGetBandeVaccinationsQueryKey(id),
+        entity: "vaccination",
+        path: "vaccinations",
+        entityId: vaccId,
+      }),
+  });
+}
+
+export function useBandeVaccinationsOffline(bandeId: number) {
+  const queryKey = getGetBandeVaccinationsQueryKey(bandeId);
+
+  useOutboxCreateReconciliation("vaccination", bandeId, queryKey);
+
+  return useQuery({
+    queryKey,
+    queryFn: () => fetchJson(`${BASE}/${bandeId}/vaccinations`),
+  });
+}
+
+export function useTraitements(bandeId: number) {
+  useOutboxCreateReconciliation(
+    "traitement",
+    bandeId,
+    getTraitementsQueryKey(bandeId),
+  );
+
+  return useQuery({
+    queryKey: getTraitementsQueryKey(bandeId),
+    queryFn: () => fetchTraitements(bandeId),
+  });
+}
+
+export function useCreateTraitement(bandeId: number) {
+  const qc = useQueryClient();
+  const { status } = useAppNetworkStatus();
+  const queryKey = getTraitementsQueryKey(bandeId);
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: (data: Record<string, unknown>) =>
+      createProductionEntry({
+        status,
+        qc,
+        bandeId,
+        queryKey,
+        entity: "traitement",
+        path: "traitements",
+        data,
+      }),
+    onSuccess: () => {
+      if (status === "online") {
+        void qc.invalidateQueries({ queryKey });
+      }
+    },
+  });
+}
+
+export function useDeleteTraitement(bandeId: number) {
+  const qc = useQueryClient();
+  const { status } = useAppNetworkStatus();
+  const queryKey = getTraitementsQueryKey(bandeId);
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: (traitId: number | string) =>
+      deleteProductionEntry({
+        status,
+        qc,
+        bandeId,
+        queryKey,
+        entity: "traitement",
+        path: "traitements",
+        entityId: traitId,
+      }),
+  });
+}
+
+export function useObservations(bandeId: number) {
+  useOutboxCreateReconciliation(
+    "observation",
+    bandeId,
+    getObservationsQueryKey(bandeId),
+  );
 
   return useQuery({
     queryKey: getObservationsQueryKey(bandeId),
@@ -230,41 +683,6 @@ function removeObservationFromCache(
             (observation: any) =>
               String(observation.id) !== String(obsId),
           ),
-        };
-      }
-
-      return current;
-    },
-  );
-}
-
-function replaceObservationInCache(
-  qc: ReturnType<typeof useQueryClient>,
-  bandeId: number,
-  localId: string,
-  serverObservation: unknown,
-) {
-  qc.setQueryData(
-    getObservationsQueryKey(bandeId),
-    (current: any) => {
-      const replace = (observations: any[]) =>
-        observations.map((observation) =>
-          String(observation.id) === String(localId)
-            ? serverObservation
-            : observation,
-        );
-
-      if (Array.isArray(current)) {
-        return replace(current);
-      }
-
-      if (
-        current &&
-        Array.isArray(current.data)
-      ) {
-        return {
-          ...current,
-          data: replace(current.data),
         };
       }
 
