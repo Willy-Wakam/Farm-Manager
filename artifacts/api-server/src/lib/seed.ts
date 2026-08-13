@@ -49,6 +49,104 @@ async function ensureSessionTable() {
   await db.execute(sql`CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON session (expire)`);
 }
 
+/** Ajoute les clés d'idempotence offline nécessaires aux déploiements existants. */
+async function ensureOfflineIdempotencyColumns() {
+  await db.execute(sql`
+    ALTER TABLE "mortalite_journaliere"
+    ADD COLUMN IF NOT EXISTS "client_mutation_id" uuid
+  `);
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'mortalite_journaliere_client_mutation_id_unique'
+      ) THEN
+        ALTER TABLE "mortalite_journaliere"
+        ADD CONSTRAINT "mortalite_journaliere_client_mutation_id_unique"
+        UNIQUE ("client_mutation_id");
+      END IF;
+    END
+    $$
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE "pesees"
+    ADD COLUMN IF NOT EXISTS "client_mutation_id" uuid
+  `);
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'pesees_client_mutation_id_unique'
+      ) THEN
+        ALTER TABLE "pesees"
+        ADD CONSTRAINT "pesees_client_mutation_id_unique"
+        UNIQUE ("client_mutation_id");
+      END IF;
+    END
+    $$
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE "consommation_eau"
+    ADD COLUMN IF NOT EXISTS "client_mutation_id" uuid
+  `);
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'consommation_eau_client_mutation_id_unique'
+      ) THEN
+        ALTER TABLE "consommation_eau"
+        ADD CONSTRAINT "consommation_eau_client_mutation_id_unique"
+        UNIQUE ("client_mutation_id");
+      END IF;
+    END
+    $$
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE "traitements"
+    ADD COLUMN IF NOT EXISTS "client_mutation_id" uuid
+  `);
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'traitements_client_mutation_id_unique'
+      ) THEN
+        ALTER TABLE "traitements"
+        ADD CONSTRAINT "traitements_client_mutation_id_unique"
+        UNIQUE ("client_mutation_id");
+      END IF;
+    END
+    $$
+  `);
+
+  await db.execute(sql`
+    ALTER TABLE "vaccinations"
+    ADD COLUMN IF NOT EXISTS "client_mutation_id" uuid
+  `);
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'vaccinations_client_mutation_id_unique'
+      ) THEN
+        ALTER TABLE "vaccinations"
+        ADD CONSTRAINT "vaccinations_client_mutation_id_unique"
+        UNIQUE ("client_mutation_id");
+      END IF;
+    END
+    $$
+  `);
+}
+
 /**
  * Insère les paramètres manquants sans écraser ceux que l'exploitant a déjà réglés.
  * Permet d'ajouter de nouveaux paramètres lors des mises à jour de l'application.
@@ -125,6 +223,7 @@ async function seedAdminUser() {
  */
 export async function seedDefaults() {
   await ensureSessionTable();
+  await ensureOfflineIdempotencyColumns();
   await seedParametres();
   await seedAdminUser();
 }
