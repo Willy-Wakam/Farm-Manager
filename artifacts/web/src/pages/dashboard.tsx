@@ -44,6 +44,8 @@ export default function Dashboard() {
           <p className="font-medium text-sm">Attention : Les depenses de construction ont depasse le budget prevu (devis).</p>
         </div>
       )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="group hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Caisse disponible</CardTitle>
