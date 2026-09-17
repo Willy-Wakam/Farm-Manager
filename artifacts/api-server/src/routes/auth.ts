@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { getSessionUserId, requireAuth } from "./require-auth";
 
 const router = Router();
+const VALID_ROLES = ["admin", "investisseur", "gestionnaire", "lecteur"] as const;
 
 async function verifyPassword(stored: string, input: string): Promise<boolean> {
   if (stored.startsWith("$2a$") || stored.startsWith("$2b$")) {
@@ -84,21 +85,28 @@ router.post("/register", async (req, res) => {
   const currentUser = await requireAdmin(req, res);
   if (!currentUser) return;
 
-  const { nom, username, password } = req.body;
-  if (!nom || !username || !password) {
+  const { nom, username, password, role = "lecteur" } = req.body;
+  const cleanNom = typeof nom === "string" ? nom.trim() : "";
+  const cleanUsername = typeof username === "string" ? username.trim() : "";
+
+  if (!cleanNom || !cleanUsername || !password) {
     res.status(400).json({ error: "Nom, identifiant et mot de passe requis" });
     return;
   }
-  if (username.length < 3) {
+  if (cleanUsername.length < 3) {
     res.status(400).json({ error: "L'identifiant doit contenir au moins 3 caractères" });
     return;
   }
-  if (password.length < 6) {
+  if (typeof password !== "string" || password.length < 6) {
     res.status(400).json({ error: "Le mot de passe doit contenir au moins 6 caractères" });
     return;
   }
+  if (!VALID_ROLES.includes(role)) {
+    res.status(400).json({ error: "Rôle invalide" });
+    return;
+  }
 
-  const existing = await db.select().from(usersTable).where(eq(usersTable.username, username));
+  const existing = await db.select().from(usersTable).where(eq(usersTable.username, cleanUsername));
   if (existing.length > 0) {
     res.status(409).json({ error: "Ce nom d'utilisateur est déjà pris" });
     return;
@@ -106,13 +114,21 @@ router.post("/register", async (req, res) => {
 
   const hashed = await bcrypt.hash(password, 10);
   const rows = await db.insert(usersTable).values({
-    nom,
-    username,
+    nom: cleanNom,
+    username: cleanUsername,
     password: hashed,
-    role: "lecteur",
+    role,
   }).returning();
 
-  res.status(201).json({ success: true, user: { id: rows[0].id, username: rows[0].username, role: rows[0].role, nom: rows[0].nom } });
+  res.status(201).json({
+    success: true,
+    user: {
+      id: rows[0].id,
+      username: rows[0].username,
+      role: rows[0].role,
+      nom: rows[0].nom,
+    },
+  });
 });
 
 router.post("/logout", (req, res) => {
@@ -154,8 +170,7 @@ router.put("/users/:id/role", async (req, res) => {
 
   const targetId = parseInt(req.params.id);
   const { role } = req.body;
-  const validRoles = ["admin", "investisseur", "gestionnaire", "lecteur"];
-  if (!validRoles.includes(role)) {
+  if (!VALID_ROLES.includes(role)) {
     res.status(400).json({ error: "Rôle invalide" });
     return;
   }
@@ -166,7 +181,10 @@ router.put("/users/:id/role", async (req, res) => {
   }
 
   const rows = await db.update(usersTable).set({ role }).where(eq(usersTable.id, targetId)).returning();
-  if (!rows.length) { res.status(404).json({ error: "Utilisateur introuvable" }); return; }
+  if (!rows.length) {
+    res.status(404).json({ error: "Utilisateur introuvable" });
+    return;
+  }
 
   res.json({ id: rows[0].id, username: rows[0].username, role: rows[0].role, nom: rows[0].nom });
 });
