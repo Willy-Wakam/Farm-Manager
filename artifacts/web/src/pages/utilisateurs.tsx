@@ -7,8 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Shield, Users } from "lucide-react";
+import { Plus, Trash2, Shield, Users } from "lucide-react";
 
 type UserInfo = {
   id: number;
@@ -18,6 +29,13 @@ type UserInfo = {
   createdAt: string;
 };
 
+type NewUserForm = {
+  nom: string;
+  username: string;
+  password: string;
+  role: string;
+};
+
 const ROLES = [
   { value: "admin", label: "Administrateur", color: "bg-red-100 text-red-800 border-red-200" },
   { value: "gestionnaire", label: "Gestionnaire", color: "bg-blue-100 text-blue-800 border-blue-200" },
@@ -25,17 +43,24 @@ const ROLES = [
   { value: "lecteur", label: "Lecteur", color: "bg-gray-100 text-gray-800 border-gray-200" },
 ];
 
-function getRoleInfo(role: string) {
-  return ROLES.find(r => r.value === role) || { value: role, label: role, color: "bg-gray-100 text-gray-800 border-gray-200" };
-}
+const EMPTY_FORM: NewUserForm = {
+  nom: "",
+  username: "",
+  password: "",
+  role: "lecteur",
+};
 
 export default function Utilisateurs() {
   const { data: currentUser } = useGetMe();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newUser, setNewUser] = useState<NewUserForm>(EMPTY_FORM);
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/api`;
+  const isAdmin = currentUser?.role === "admin";
 
   const fetchUsers = async () => {
     try {
@@ -51,6 +76,39 @@ export default function Utilisateurs() {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCreating(true);
+
+    try {
+      const res = await fetch(`${baseUrl}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(newUser),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Impossible de créer le compte");
+
+      toast({
+        title: "Utilisateur créé",
+        description: `${data.user.nom} peut maintenant se connecter avec l'identifiant ${data.user.username}.`,
+      });
+      setDialogOpen(false);
+      setNewUser(EMPTY_FORM);
+      await fetchUsers();
+    } catch (e: any) {
+      toast({
+        title: "Erreur",
+        description: e.message,
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleRoleChange = async (userId: number, newRole: string) => {
     try {
@@ -89,9 +147,109 @@ export default function Utilisateurs() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight font-serif text-foreground">Gestion des utilisateurs</h1>
-        <p className="text-muted-foreground mt-1">Gérez les comptes et les droits d'accès</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight font-serif text-foreground">Gestion des utilisateurs</h1>
+          <p className="text-muted-foreground mt-1">Gérez les comptes et les droits d'accès</p>
+        </div>
+
+        {isAdmin && (
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open && !creating) setNewUser(EMPTY_FORM);
+          }}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter un utilisateur
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <form onSubmit={handleCreateUser}>
+                <DialogHeader>
+                  <DialogTitle>Ajouter un utilisateur</DialogTitle>
+                  <DialogDescription>
+                    Créez un compte et définissez directement son rôle dans l'application.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-user-name">Nom complet</Label>
+                    <Input
+                      id="new-user-name"
+                      value={newUser.nom}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, nom: e.target.value }))}
+                      placeholder="Ex. Jean Dupont"
+                      autoComplete="name"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-user-username">Identifiant</Label>
+                    <Input
+                      id="new-user-username"
+                      value={newUser.username}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+                      placeholder="Ex. jean.dupont"
+                      autoComplete="username"
+                      minLength={3}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-user-password">Mot de passe temporaire</Label>
+                    <Input
+                      id="new-user-password"
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                      placeholder="6 caractères minimum"
+                      autoComplete="new-password"
+                      minLength={6}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label>Rôle</Label>
+                    <Select
+                      value={newUser.role}
+                      onValueChange={(role) => setNewUser(prev => ({ ...prev, role }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir un rôle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ROLES.map(role => (
+                          <SelectItem key={role.value} value={role.value}>
+                            {role.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                    disabled={creating}
+                  >
+                    Annuler
+                  </Button>
+                  <Button type="submit" disabled={creating}>
+                    {creating ? "Création..." : "Créer le compte"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -131,7 +289,6 @@ export default function Utilisateurs() {
             </TableHeader>
             <TableBody>
               {users.map(u => {
-                const roleInfo = getRoleInfo(u.role);
                 const isCurrentUser = u.id === currentUser?.id;
                 return (
                   <TableRow key={u.id}>
@@ -157,7 +314,7 @@ export default function Utilisateurs() {
                       </Select>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {u.createdAt ? format(new Date(u.createdAt), 'dd/MM/yyyy') : "-"}
+                      {u.createdAt ? format(new Date(u.createdAt), "dd/MM/yyyy") : "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       {!isCurrentUser && (
