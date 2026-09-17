@@ -15,6 +15,7 @@ type QueryablePool = {
 type CreatedUserResponse = {
   user: {
     id: number;
+    role: UserRole;
   };
 };
 
@@ -173,25 +174,13 @@ async function createUser(
       nom: username,
       username,
       password: "secret1",
+      role,
     },
   });
 
   assert.equal(createResponse.status, 201);
   const created = await createResponse.json() as CreatedUserResponse;
-
-  if (role === "lecteur") return;
-
-  const roleResponse = await request(
-    "PUT",
-    `/auth/users/${created.user.id}/role`,
-    {
-      cookie: adminCookie,
-      body: { role },
-    },
-  );
-
-  assert.equal(roleResponse.status, 200);
-  await roleResponse.text();
+  assert.equal(created.user.role, role);
 }
 
 before(async () => {
